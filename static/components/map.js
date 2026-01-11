@@ -5,6 +5,7 @@ import {
 } from "https://cdn.jsdelivr.net/gh/lit/dist@3.3.1/core/lit-core.min.js";
 import { Map, View } from "https://cdn.jsdelivr.net/npm/ol@10.7.0/+esm";
 import OSM from "https://cdn.jsdelivr.net/npm/ol@10.7.0/source/OSM.js";
+import { fromLonLat } from "https://cdn.jsdelivr.net/npm/ol@10.7.0/proj.js";
 import TileLayer from "https://cdn.jsdelivr.net/npm/ol@10.7.0/layer/Tile.js";
 import { GeoPoint } from "../value-objects/geopoint.js";
 import olStyles from "https://cdn.jsdelivr.net/npm/ol@10.7.0/ol.css" with { type: "css" };
@@ -34,8 +35,10 @@ export class TSMap extends LitElement {
         }),
       ],
       view: new View({
-        projection: "EPSG:4326",
-        center: this.center ? GeoPoint.parse(this.center).coordinates : [0, 0],
+        projection: "EPSG:3857",
+        center: fromLonLat(
+          this.center ? GeoPoint.parse(this.center).coordinates : [0, 0],
+        ),
         zoom: this.zoom,
       }),
     });
@@ -47,7 +50,7 @@ export class TSMap extends LitElement {
         this.center instanceof GeoPoint
           ? this.center
           : GeoPoint.parse(this.center);
-      this.#ol.getView().setCenter(center.coordinates);
+      this.#ol.getView().setCenter(fromLonLat(center.coordinates));
     }
     if (changedProps.has("zoom")) {
       this.#ol.getView().setZoom(this.zoom);
@@ -61,6 +64,11 @@ export class TSMap extends LitElement {
     #root {
       width: 100%;
       height: 100%;
+    }
+    @media (prefers-color-scheme: dark) {
+      .ol-layer {
+        filter: saturate(0.5) brightness(0.9);
+      }
     }
   `;
 }
