@@ -13,7 +13,6 @@ import { loadData } from "./wikibase.js";
 export class Timescape {
   #map = null;
   #timeline = null;
-  #range = null;
   #observable = null;
   constructor(mapEl, timeline) {
     this.#map = mapEl;
@@ -45,14 +44,6 @@ export class Timescape {
       console.info("Cant get current position");
     }
 
-    // TODO: get map box boundary
-    // TODO: get date-range
-    // Subscribe to range-change
-    // this.#timeline.addEventListener("rangechanged", (e) => {
-    //   console.debug("Timeline update", e.detail);
-    //   this.#range = e.detail.range;
-    //   this.loadEvents();
-    // });
     this.#observable.subscribe((events) => {
       console.info("update timeline events");
       console.table(events);
@@ -64,13 +55,6 @@ export class Timescape {
       }));
     });
   }
-
-  // async loadEvents(range) {
-  //   console.info("Load wikibase data");
-  //   const data = await loadData({ range });
-  //   console.table(data);
-  //   return data;
-  // }
 
   getClientPosition() {
     return new Promise((resolve, reject) => {
