@@ -5,7 +5,10 @@ import {
 } from "https://cdn.jsdelivr.net/gh/lit/dist@3.3.1/core/lit-core.min.js";
 import { Map, View } from "https://cdn.jsdelivr.net/npm/ol@10.7.0/+esm";
 import OSM from "https://cdn.jsdelivr.net/npm/ol@10.7.0/source/OSM.js";
-import { fromLonLat } from "https://cdn.jsdelivr.net/npm/ol@10.7.0/proj.js";
+import {
+  fromLonLat,
+  transformExtent,
+} from "https://cdn.jsdelivr.net/npm/ol@10.7.0/proj.js";
 import TileLayer from "https://cdn.jsdelivr.net/npm/ol@10.7.0/layer/Tile.js";
 import { GeoPoint } from "../value-objects/geopoint.js";
 import olStyles from "https://cdn.jsdelivr.net/npm/ol@10.7.0/ol.css" with { type: "css" };
@@ -16,6 +19,19 @@ export class TSMap extends LitElement {
     center: { type: String },
     zoom: { type: Number },
   };
+
+  get boundaries() {
+    const extent = this.#ol.getView().calculateExtent();
+    const [minLon, minLat, maxLon, maxLat] = transformExtent(
+      extent,
+      "EPSG:3857",
+      "EPSG:4326",
+    );
+    return {
+      min: GeoPoint.create({ latitude: minLat, longitude: minLon }),
+      max: GeoPoint.create({ latitude: maxLat, longitude: maxLon }),
+    };
+  }
 
   render() {
     return html`<div id="root"><slot></slot></div>`;
@@ -41,6 +57,11 @@ export class TSMap extends LitElement {
         ),
         zoom: this.zoom,
       }),
+    });
+    this.#ol.getView().on("change", (e) => {
+      this.dispatchEvent(
+        new CustomEvent("change", { bubbles: true, composed: true }),
+      );
     });
   }
 
