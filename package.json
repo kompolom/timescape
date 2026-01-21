@@ -1,0 +1,29 @@
+{
+  "name": "timescape",
+  "version": "1.0.0",
+  "description": "TimeScape is a research tool that helps visualize historical timelines in their geographic context, providing a comprehensive view of significant events.",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "http-server",
+    "build": "rollup -c"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kompolom/timescape.git"
+  },
+  "author": "Evgeniy Baranov",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/kompolom/timescape/issues"
+  },
+  "homepage": "https://github.com/kompolom/timescape#readme",
+  "devDependencies": {
+    "@rollup/plugin-node-resolve": "^16.0.3",
+    "rollup": "^4.55.3"
+  },
+  "dependencies": {
+    "ol": "^10.7.0"
+  }
+}

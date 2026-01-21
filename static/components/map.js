@@ -3,21 +3,64 @@ import {
   html,
   css,
 } from "https://cdn.jsdelivr.net/gh/lit/dist@3.3.1/core/lit-core.min.js";
-import { Map, View } from "https://cdn.jsdelivr.net/npm/ol@10.7.0/+esm";
-import OSM from "https://cdn.jsdelivr.net/npm/ol@10.7.0/source/OSM.js";
 import {
+  Map,
+  View,
+  OSM,
+  TileLayer,
+  Style,
+  Circle,
+  Stroke,
+  Feature,
+  Text,
+  Fill,
+  Point,
+  VectorLayer,
+  VectorSource,
   fromLonLat,
   transformExtent,
-} from "https://cdn.jsdelivr.net/npm/ol@10.7.0/proj.js";
-import TileLayer from "https://cdn.jsdelivr.net/npm/ol@10.7.0/layer/Tile.js";
+  Cluster,
+  Icon,
+  boundingExtent,
+} from "../../dist/ol.js";
 import { GeoPoint } from "../value-objects/geopoint.js";
 import olStyles from "https://cdn.jsdelivr.net/npm/ol@10.7.0/ol.css" with { type: "css" };
 
+const markerStyle = new Style({
+  image: new Icon({
+    src: "/static/assets/marker.svg",
+    anchor: [0.5, 1],
+  }),
+  text: new Text({
+    fill: new Fill({ color: "#405368" }),
+    textAlign: "center",
+    textBaseline: "middle",
+  }),
+});
+
+const clusterStyle = (count) =>
+  new Style({
+    image: new Circle({
+      radius: 15,
+      stroke: new Stroke({ width: 4, color: "#405368" }),
+      fill: new Fill({ color: "#fff" }),
+    }),
+    text: new Text({
+      text: String(count),
+      font: "bold 18px Arial",
+      fill: new Fill({ color: "#405368" }),
+      textAlign: "center",
+      textBaseline: "middle",
+    }),
+  });
+
 export class TSMap extends LitElement {
   #ol;
+  #markersLayer;
   static properties = {
     center: { type: String },
     zoom: { type: Number },
+    markers: { type: Object },
   };
 
   get boundaries() {
@@ -43,12 +86,16 @@ export class TSMap extends LitElement {
   }
 
   firstUpdated() {
+    this.#markersLayer = new VectorLayer({
+      source: new VectorSource({ features: [] }),
+    });
     this.#ol = new Map({
       target: this.renderRoot.getElementById("root"),
       layers: [
         new TileLayer({
           source: new OSM(),
         }),
+        this.#markersLayer,
       ],
       view: new View({
         projection: "EPSG:3857",
@@ -76,6 +123,29 @@ export class TSMap extends LitElement {
     if (changedProps.has("zoom")) {
       this.#ol.getView().setZoom(this.zoom);
     }
+    if (changedProps.has("markers")) {
+      const features = (this.markers || []).map(this.#createMarker);
+      const source = this.#markersLayer.getSource();
+      if (source) {
+        source.dispose();
+      }
+      this.#markersLayer.setStyle((feature) => {
+        const size = feature.get("features").length;
+        return size > 1 ? clusterStyle(size) : markerStyle;
+      });
+      this.#markersLayer.setSource(
+        new Cluster({ distance: 40, source: new VectorSource({ features }) }),
+      );
+    }
+  }
+
+  #createMarker(conf) {
+    const feature = new Feature({
+      geometry: new Point(fromLonLat(conf.coord.coordinates)),
+    });
+    feature.setStyle(markerStyle);
+    feature.setId(conf.id);
+    return feature;
   }
 
   static styles = css`

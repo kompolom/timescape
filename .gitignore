@@ -1,3 +1,5 @@
 /timescape
 /temp
+node_modules
 gensvg.py
+dist
