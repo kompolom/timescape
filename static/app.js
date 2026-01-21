@@ -31,6 +31,12 @@ export class Timescape {
       switchMap(([range, position]) => {
         return loadData({ range, position, limit: 50 });
       }),
+      map((data) => {
+        return data.map((item) => ({
+          ...item,
+          coord: GeoPoint.create(item.coord),
+        }));
+      }),
     );
   }
 
@@ -52,6 +58,10 @@ export class Timescape {
         content: event.event.label,
         start: event.start,
         end: event.end,
+      }));
+      this.#map.markers = events.map((event) => ({
+        id: event.event.value,
+        coord: event.coord,
       }));
     });
   }
