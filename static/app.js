@@ -22,7 +22,6 @@ export class Timescape {
       tap((r) => console.info(`Timeline update: ${r}`)),
     );
     const map$ = fromEvent(this.#map, "change").pipe(
-      tap((e) => console.info("Map change", e)),
       map((e) => e.target.boundaries),
       startWith(this.#map.boundaries),
     );
