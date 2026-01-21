@@ -15,6 +15,9 @@ const isGeoJsonPoint = (d) =>
   Object.hasOwn(d, "coordinates") &&
   Array.isArray(d.coordinates);
 
+const WKTLiteralRE = /(^Point\()(?<lon>[-\d\.]+)\s(?<lat>[-\d\.]+)\)$/;
+const isWKTLiteral = (d) => typeof d === "string" && WKTLiteralRE.test(d);
+
 /**
  * RFC-5870 compatible Geolocation position
  * @url https://www.rfc-editor.org/rfc/rfc5870
@@ -85,6 +88,9 @@ export class GeoPoint extends URL {
       );
     } else if (isGeoJsonPoint(d)) {
       return new GeoPoint(`geo:${d.coordinates[1]},${d.coordinates[0]}`);
+    } else if (isWKTLiteral(d)) {
+      const { groups } = d.match(WKTLiteralRE);
+      return new GeoPoint(`geo:${groups.lat},${groups.lon}`);
     }
     return new GeoPoint(
       `geo:${[d.latitude, d.longitude, d.altitude].filter(Boolean).join(",")}` +
