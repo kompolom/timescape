@@ -3,9 +3,9 @@ import { parseParams } from "../util/param.js";
 const isGeolocationCoordinates = (d) =>
   typeof d === "object" &&
   d !== null &&
-  Object.hasOwn(d, "latitude") &&
-  Object.hasOwn(d, "longitude") &&
-  Object.hasOwn(d, "accuracy");
+  typeof d["latitude"] === "number" &&
+  typeof d["longitude"] === "number" &&
+  typeof d["accuracy"] === "number";
 
 const isGeoJsonPoint = (d) =>
   typeof d === "object" &&
