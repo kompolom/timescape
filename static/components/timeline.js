@@ -12,6 +12,7 @@ export class TSTimeline extends LitElement {
   #timeline;
   static properties = {
     items: { type: Array },
+    selected: { type: String },
   };
 
   get range() {
@@ -28,6 +29,7 @@ export class TSTimeline extends LitElement {
   disconnectedCallback() {
     super.disconnectedCallback();
     this.#timeline.off("rangechanged");
+    this.#timeline.off("select");
   }
 
   constructor() {
@@ -61,12 +63,25 @@ export class TSTimeline extends LitElement {
         }),
       );
     });
+    this.#timeline.on("select", (props) => {
+      const [id] = props.items;
+      this.dispatchEvent(
+        new CustomEvent("select", {
+          bubbles: true,
+          composed: true,
+          detail: id,
+        }),
+      );
+    });
   }
 
   updated(changedProps) {
     if (changedProps.has("items")) {
       console.debug("update items", this.items);
       this.#timeline.setItems(this.items);
+    }
+    if (changedProps.has("selected")) {
+      this.#timeline.setSelection([this.selected]);
     }
   }
 
