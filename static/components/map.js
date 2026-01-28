@@ -110,6 +110,46 @@ export class TSMap extends LitElement {
         new CustomEvent("change", { bubbles: true, composed: true }),
       );
     });
+    this.#ol.on("click", (event) => {
+      this.#ol.forEachFeatureAtPixel(event.pixel, (feature) => {
+        const maxZoom = 15;
+        const clustered = feature.get("features");
+        if (clustered && clustered.length > 1) {
+          // Cluster
+          if (this.#ol.getView().getZoom() >= maxZoom) {
+            const ids = clustered.map((f) => f.getId());
+            this.dispatchEvent(
+              new CustomEvent("clusterclick", {
+                detail: { ids },
+                bubbles: true,
+                composed: true,
+              }),
+            );
+            return;
+          } else {
+            const extent = boundingExtent(
+              clustered.map((f) => f.getGeometry().getCoordinates()),
+            );
+            this.#ol.getView().fit(extent, {
+              duration: 300,
+              padding: [50, 50, 50, 50],
+              maxZoom,
+            });
+          }
+        } else {
+          // Point
+          const original = clustered ? clustered[0] : feature;
+          const id = original.getId();
+          this.dispatchEvent(
+            new CustomEvent("markerclick", {
+              detail: { id },
+              bubbles: true,
+              composed: true,
+            }),
+          );
+        }
+      });
+    });
   }
 
   updated(changedProps) {
