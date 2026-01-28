@@ -1,5 +1,6 @@
 import { TSMap } from "./components/map.js";
 import { TSTimeline } from "./components/timeline.js";
+import { TSLoader } from "./components/loader.js";
 import { Timescape } from "./app.js";
 
 const registerComponent = (name, ComponentClass) => {
@@ -12,6 +13,7 @@ const registerComponent = (name, ComponentClass) => {
 const initComponents = () => {
   registerComponent("ts-map", TSMap);
   registerComponent("ts-timeline", TSTimeline);
+  registerComponent("ts-loader", TSLoader);
 };
 initComponents();
 
@@ -19,8 +21,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   initComponents();
   console.group("Init application");
   window.timescape = new Timescape(
-    document.getElementsByTagName("ts-map").item(0),
-    document.getElementsByTagName("ts-timeline").item(0),
+    document.querySelector("ts-map"),
+    document.querySelector("ts-timeline"),
+    document.querySelector("ts-loader"),
   );
   console.groupEnd();
   window.timescape.run();

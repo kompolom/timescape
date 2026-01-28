@@ -13,13 +13,17 @@ import { loadData } from "./wikibase.js";
 export class Timescape {
   #map = null;
   #timeline = null;
+  #loader = null;
   #observable = null;
-  constructor(mapEl, timeline) {
+  constructor(mapEl, timeline, loader) {
     this.#map = mapEl;
     this.#timeline = timeline;
+    this.#loader = loader;
+
     const time$ = fromEvent(this.#timeline, "rangechanged").pipe(
       map((e) => e.detail.range),
       tap((r) => console.info(`Timeline update: ${r}`)),
+      startWith(this.#timeline.range),
     );
     const map$ = fromEvent(this.#map, "change").pipe(
       map((e) => e.target.boundaries),
@@ -27,6 +31,7 @@ export class Timescape {
     );
     this.#observable = combineLatest([time$, map$]).pipe(
       debounceTime(400),
+      tap(() => (this.#loader.active = true)),
       switchMap(([range, position]) => {
         return loadData({ range, position, limit: 50 });
       }),
@@ -36,7 +41,22 @@ export class Timescape {
           coord: GeoPoint.create(item.coord),
         }));
       }),
+      tap(() => (this.#loader.active = false)),
     );
+    const marker$ = fromEvent(this.#map, "markerclick").pipe(
+      map((e) => e.detail.id),
+    );
+    const eventSelect$ = fromEvent(this.#timeline, "select").pipe(
+      map((e) => e.detail),
+    );
+    marker$.subscribe((id) => {
+      console.debug("Clicked marker:", id);
+      this.#timeline.selected = id;
+    });
+    // eventSelect$.subscribe((id) => {
+    //   // TODO: get event position from global storage
+    //   ///this.#map.center =
+    // });
   }
 
   async run() {
