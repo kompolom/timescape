@@ -48,6 +48,19 @@ export class BBox {
     );
   }
 
+  /**
+   *
+   * @param {BBox} bbox
+   */
+  contains(bbox) {
+    return (
+      this.#minLat <= bbox.minLat &&
+      this.#maxLat >= bbox.maxLat &&
+      this.#minLon <= bbox.minLon &&
+      this.#maxLon >= bbox.maxLon
+    );
+  }
+
   toArray() {
     return [this.#minLon, this.#minLat, this.#maxLon, this.#maxLat];
   }
