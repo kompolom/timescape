@@ -6,15 +6,18 @@ import {
   switchMap,
   combineLatest,
   startWith,
+  toArray,
 } from "https://cdn.jsdelivr.net/npm/rxjs@7.8.2/+esm";
 import { GeoPoint } from "./value-objects/geopoint.js";
-import { loadData } from "./wikibase.js";
+import { Store } from "./store.js";
+import { HistoricalEvent } from "./entities/historical-event.js";
 
 export class Timescape {
   #map = null;
   #timeline = null;
   #loader = null;
   #observable = null;
+  #store = new Store();
   constructor(mapEl, timeline, loader) {
     this.#map = mapEl;
     this.#timeline = timeline;
@@ -32,15 +35,7 @@ export class Timescape {
     this.#observable = combineLatest([time$, map$]).pipe(
       debounceTime(400),
       tap(() => (this.#loader.active = true)),
-      switchMap(([range, position]) => {
-        return loadData({ range, position, limit: 50 });
-      }),
-      map((data) => {
-        return data.map((item) => ({
-          ...item,
-          coord: GeoPoint.create(item.coord),
-        }));
-      }),
+      switchMap(([range, bbox]) => this.#store.getEvents(range, bbox)),
       tap(() => (this.#loader.active = false)),
     );
     const marker$ = fromEvent(this.#map, "markerclick").pipe(
@@ -69,20 +64,25 @@ export class Timescape {
       console.info("Cant get current position");
     }
 
-    this.#observable.subscribe((events) => {
-      console.info("update timeline events");
-      console.table(events);
-      this.#timeline.items = events.map((event) => ({
-        id: event.event.value,
-        content: event.event.label,
-        start: event.start,
-        end: event.end,
-      }));
-      this.#map.markers = events.map((event) => ({
-        id: event.event.value,
-        coord: event.coord,
-      }));
-    });
+    this.#observable.subscribe(
+      /**
+       * @param {HistoricalEvent[]} events
+       */
+      (events) => {
+        console.info("update timeline events");
+        console.table(events);
+        this.#timeline.items = events.map((event) => ({
+          id: event.id,
+          content: event.label,
+          start: event.start,
+          end: event.end,
+        }));
+        this.#map.markers = events.map((event) => ({
+          id: event.id,
+          coord: event.position,
+        }));
+      },
+    );
   }
 
   getClientPosition() {
