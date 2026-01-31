@@ -1,8 +1,10 @@
+import { EventDTO } from "./dto/historical-event.dto.js";
 import {
   WBK,
   simplifySparqlResults,
 } from "https://cdn.jsdelivr.net/npm/wikibase-sdk@11.2.1/+esm";
 import { ISODateRange } from "./value-objects/iso-range.js";
+import { BBox } from "./value-objects/bbox.js";
 import { fromFetch } from "https://cdn.jsdelivr.net/npm/rxjs@7.8.1/fetch/+esm";
 import { map } from "https://cdn.jsdelivr.net/npm/rxjs@7.8.2/+esm";
 
@@ -13,8 +15,11 @@ const wdk = WBK({
 
 /**
  * Query wikidata
- * @param {} query
- * @returns
+ * @param {Object} query
+ * @param {ISODateRange} query.range
+ * @param {BBox} query.bbox
+ * @param {number} query.limit
+ * @returns Promise<EventDTO[]>
  */
 export const loadData = (query) => {
   if (!query?.range) {
@@ -23,8 +28,8 @@ export const loadData = (query) => {
     throw new Error("query.range should be ISODateRange");
   } else if (query.range.empty) {
     throw new Error("Empty ISODateRange");
-  } else if (!query.position) {
-    throw new Error("No query position");
+  } else if ((!query.bbox) instanceof BBox) {
+    throw new Error("Wrong query poition boundary");
   }
 
   const sparql = `
@@ -39,10 +44,10 @@ export const loadData = (query) => {
               ?end <= "${query.range.end.toISOString()}"^^xsd:dateTime)
       ?event wdt:P276 ?location.
       ?location wdt:P625 ?coord.
-      FILTER(geof:latitude(?coord) >= ${query.position.min.latitude} &&
-              geof:latitude(?coord) <= ${query.position.max.latitude} &&
-              geof:longitude(?coord) >= ${query.position.min.longitude} &&
-              geof:longitude(?coord) <= ${query.position.max.longitude})
+      FILTER(geof:latitude(?coord) >= ${query.bbox.minLat} &&
+              geof:latitude(?coord) <= ${query.bbox.maxLat} &&
+              geof:longitude(?coord) >= ${query.bbox.minLon} &&
+              geof:longitude(?coord) <= ${query.bbox.maxLon})
       SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],mul,en". }
     }
     GROUP BY ?event ?eventLabel ?start ?end
@@ -54,5 +59,11 @@ export const loadData = (query) => {
 
   return fromFetch(url, { selector: (res) => res.json() }).pipe(
     map(simplifySparqlResults),
+    map((events) =>
+      events.map(
+        (e) =>
+          new EventDTO(e.event.value, e.event.label, e.start, e.end, e.coord),
+      ),
+    ),
   );
 };
