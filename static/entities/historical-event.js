@@ -47,7 +47,7 @@ export class HistoricalEvent {
    * @returns {boolean}
    */
   static inPlace(boundaries, event) {
-    return boundaries.contains(event.position);
+    return boundaries.containsPoint(event.position);
   }
 
   /**

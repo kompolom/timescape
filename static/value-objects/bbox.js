@@ -39,7 +39,7 @@ export class BBox {
    * @param {import('./geopoint').GeoPoint} point to check
    * @returns {boolean} - True if the point is within the bounding box, false otherwise.
    */
-  contains(point) {
+  containsPoint(point) {
     return (
       point.longitude >= this.#minLon &&
       point.longitude <= this.#maxLon &&
