@@ -36,7 +36,7 @@ export class HistoricalEvent {
    */
   static inPeriod(range, event) {
     return (
-      range.start >= event.duration.start && range.end >= event.duration.end
+      range.start <= event.duration.start && range.end >= event.duration.end
     );
   }
 
