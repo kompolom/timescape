@@ -24,6 +24,7 @@ import {
   boundingExtent,
 } from "../../dist/ol.js";
 import { GeoPoint } from "../value-objects/geopoint.js";
+import { BBox } from "../value-objects/bbox.js";
 import olStyles from "https://cdn.jsdelivr.net/npm/ol@10.7.0/ol.css" with { type: "css" };
 
 const markerStyle = new Style({
@@ -63,17 +64,12 @@ export class TSMap extends LitElement {
     markers: { type: Object },
   };
 
+  /**
+   * @property {BBox} boundaries
+   */
   get boundaries() {
     const extent = this.#ol.getView().calculateExtent();
-    const [minLon, minLat, maxLon, maxLat] = transformExtent(
-      extent,
-      "EPSG:3857",
-      "EPSG:4326",
-    );
-    return {
-      min: GeoPoint.create({ latitude: minLat, longitude: minLon }),
-      max: GeoPoint.create({ latitude: maxLat, longitude: maxLon }),
-    };
+    return BBox.fromArray(transformExtent(extent, "EPSG:3857", "EPSG:4326"));
   }
 
   render() {
