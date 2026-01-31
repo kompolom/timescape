@@ -14,8 +14,24 @@ export class BBox {
     }
     this.#minLon = minLon;
     this.#minLat = minLat;
-    this.maxLon = maxLon;
+    this.#maxLon = maxLon;
     this.#maxLat = maxLat;
+  }
+
+  get minLon() {
+    return this.#minLon;
+  }
+
+  get minLat() {
+    return this.#minLat;
+  }
+
+  get maxLon() {
+    return this.#maxLon;
+  }
+
+  get maxLat() {
+    return this.#maxLat;
   }
 
   /**
@@ -44,6 +60,6 @@ export class BBox {
   }
 
   static fromArray(values) {
-    return new ViewBox(values[0], values[1], values[2], values[3]);
+    return new BBox(values[0], values[1], values[2], values[3]);
   }
 }
