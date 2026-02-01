@@ -1,3 +1,5 @@
+@import "./styles/container.css";
+
 @property --base-unit {
     syntax: "<length>";
     inherits: false;
@@ -28,7 +30,7 @@
     html,
     body {
         --color-text: var(--color-dark);
-        --color-background: var(--color-light);
+        --color-background: #fff;
     }
 }
 @media (prefers-color-scheme: dark) {
@@ -48,27 +50,6 @@ body {
     padding: 0;
     background-color: var(--color-background);
     color: var(--color-text);
-}
-
-/* Content container */
-@property --container-offset {
-    syntax: "<length>";
-    inherits: true;
-    initial-value: 0px;
-}
-@property --container-width {
-    syntax: "<length-percentage>";
-    inherits: true;
-    initial-value: 100%;
-}
-.container {
-    width: calc(100% - var(--container-offset) - var(--container-offset));
-    max-width: var(--container-width);
-    padding-inline: var(--container-offset);
-    margin-inline: auto;
-    box-sizing: border-box;
-    container-name: content;
-    container-type: inline-size;
 }
 
 @media (min-width: 768px) {

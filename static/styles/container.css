@@ -1,0 +1,20 @@
+/* Content container */
+@property --container-offset {
+    syntax: "<length>";
+    inherits: true;
+    initial-value: 0px;
+}
+@property --container-width {
+    syntax: "<length-percentage>";
+    inherits: true;
+    initial-value: 100%;
+}
+.container {
+    width: calc(100% - var(--container-offset) - var(--container-offset));
+    max-width: var(--container-width);
+    padding-inline: var(--container-offset);
+    margin-inline: auto;
+    box-sizing: border-box;
+    container-name: content;
+    container-type: inline-size;
+}
