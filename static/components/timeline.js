@@ -82,6 +82,13 @@ export class TSTimeline extends LitElement {
     }
     if (changedProps.has("selected")) {
       this.#timeline.setSelection([this.selected]);
+      this.dispatchEvent(
+        new CustomEvent("select", {
+          bubbles: true,
+          composed: true,
+          detail: this.selected,
+        }),
+      );
     }
   }
 
