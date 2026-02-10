@@ -7,6 +7,7 @@ import { ISODateRange } from "./value-objects/iso-range.js";
 import { BBox } from "./value-objects/bbox.js";
 import { fromFetch } from "https://cdn.jsdelivr.net/npm/rxjs@7.8.1/fetch/+esm";
 import { map } from "https://cdn.jsdelivr.net/npm/rxjs@7.8.2/+esm";
+import { DetailedEventDTO } from "./dto/detailed-event.dto.js";
 
 const wdk = WBK({
   instance: "https://www.wikidata.org",
@@ -54,7 +55,7 @@ export const loadData = (query) => {
     ORDER BY ?start
     LIMIT ${query.limit || 20}
     `;
-  console.debug(sparql);
+  // console.debug(sparql);
   const url = wdk.sparqlQuery(sparql);
 
   return fromFetch(url, { selector: (res) => res.json() }).pipe(
@@ -65,5 +66,94 @@ export const loadData = (query) => {
           new EventDTO(e.event.value, e.event.label, e.start, e.end, e.coord),
       ),
     ),
+  );
+};
+
+function parseWikidataEvent(json) {
+  const entity = Object.values(json.entities)[0];
+  const id = entity.id;
+
+  // helpers
+  const getClaimValue = (prop) =>
+    entity.claims[prop]?.[0]?.mainsnak?.datavalue?.value ?? null;
+
+  const getTime = (prop) => {
+    const v = getClaimValue(prop);
+    if (!v) return null;
+    return v.time.slice(1, 11); // "+2025-09-16T00:00:00Z" → "2025-09-16"
+  };
+
+  const getEntityList = (prop) =>
+    (entity.claims[prop] || []).map((c) => c.mainsnak.datavalue.value.id);
+
+  const getSitelink = (site) => entity.sitelinks?.[site]?.title ?? null;
+
+  // 1. Основные поля
+  const title = entity.labels?.en?.value ?? id;
+  const description = entity.descriptions?.en?.value ?? "";
+
+  // 2. Даты
+  const dateStart = getTime("P580");
+  const dateEnd = getTime("P582");
+
+  // 3. Координаты (P625)
+  const coordsRaw = getClaimValue("P625");
+  const coords = coordsRaw ? [coordsRaw.longitude, coordsRaw.latitude] : null;
+
+  // 4. Места (P276)
+  const placeIds = getEntityList("P276");
+
+  // 5. Участники (P710)
+  const participantIds = getEntityList("P710");
+
+  // 6. Wikipedia
+  const wikipediaTitle = getSitelink("enwiki");
+  const wikipedia = wikipediaTitle
+    ? {
+        title: wikipediaTitle,
+        url: `https://en.wikipedia.org/wiki/${encodeURIComponent(
+          wikipediaTitle,
+        )}`,
+      }
+    : null;
+
+  // 7. Медиа
+  const imageName = getClaimValue("P18");
+  const commonsCategory = getClaimValue("P373");
+
+  const media = {
+    image: imageName
+      ? `https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(
+          imageName,
+        )}`
+      : null,
+    commonsCategory,
+  };
+
+  return {
+    id,
+    title,
+    description,
+    dateStart,
+    dateEnd,
+    coords,
+    place: placeIds.map((id) => ({ id })), // можно позже обогащать label'ами
+    participants: participantIds.map((id) => ({ id })),
+    wikipedia,
+    media,
+  };
+}
+
+export const loadEntityById = (id) => {
+  const languages = ["en", "mul"];
+  const url = wdk.getEntities({
+    ids: [id],
+    languages,
+    format: "json",
+  });
+  return fromFetch(url, { selector: (res) => res.json() }).pipe(
+    map((data) => {
+      return parseWikidataEvent(data);
+    }),
   );
 };

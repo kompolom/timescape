@@ -17,11 +17,13 @@ export class Timescape {
   #timeline = null;
   #loader = null;
   #observable = null;
+  #panel = null;
   #store = new Store();
-  constructor(mapEl, timeline, loader) {
+  constructor(mapEl, timeline, loader, panel) {
     this.#map = mapEl;
     this.#timeline = timeline;
     this.#loader = loader;
+    this.#panel = panel;
 
     const time$ = fromEvent(this.#timeline, "rangechanged").pipe(
       map((e) => e.detail.range),
@@ -48,10 +50,15 @@ export class Timescape {
       console.debug("Clicked marker:", id);
       this.#timeline.selected = id;
     });
-    // eventSelect$.subscribe((id) => {
-    //   // TODO: get event position from global storage
-    //   ///this.#map.center =
-    // });
+
+    eventSelect$.subscribe((id) => {
+      console.debug("timeline event select");
+      this.#panel.eventid = id;
+      const event = this.#store.getEventById(id);
+      if (event) {
+        this.#map.center = event.position;
+      }
+    });
   }
 
   async run() {

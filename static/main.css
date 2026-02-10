@@ -31,6 +31,21 @@
     body {
         --color-text: var(--color-dark);
         --color-background: #fff;
+        --border: #d5d5d5;
+
+        --text-primary: rgba(38, 38, 51, 1);
+        --text-secondary: rgba(133, 136, 158, 1);
+        --text-tertiary: rgba(179, 184, 204, 1);
+        --text-positive: rgba(85, 193, 81, 1);
+        --text-pro-blue: rgba(136, 157, 188, 1);
+        --text-pro-blue-hovered: rgba(112, 137, 173, 1);
+        --link-default: rgba(0, 119, 255, 1);
+        --link-default-hovered: rgba(255, 77, 77, 1);
+        --surface-elevated-0: rgba(255, 255, 255, 1);
+        --surface-elevated-0-transparent: rgba(255, 255, 255, 0);
+        --surface-elevated-100: rgba(255, 255, 255, 1);
+        --surface-elevated-200: rgba(255, 255, 255, 1);
+        --surface-submerged: rgba(247, 248, 250, 1);
     }
 }
 @media (prefers-color-scheme: dark) {
@@ -39,6 +54,20 @@
     body {
         --color-text: var(--color-light);
         --color-background: var(--color-dark);
+        --border: #3a383d;
+
+        --text-primary: rgba(255, 255, 255, 0.9);
+        --text-secondary: rgba(255, 255, 255, 0.56);
+        --text-tertiary: rgba(255, 255, 255, 0.42);
+        --text-positive: rgba(85, 193, 81, 1);
+        --text-pro-blue: rgba(135, 153, 186, 1);
+        --text-pro-blue-hovered: rgba(167, 183, 215, 1);
+        --link-default: rgba(86, 168, 252, 1);
+        --link-default-hovered: rgba(251, 92, 86, 1);
+        --surface-elevated-0: rgba(22, 22, 23, 1);
+        --surface-elevated-100: rgba(28, 28, 30, 1);
+        --surface-elevated-200: rgba(47, 47, 50, 1);
+        --surface-submerged: rgba(14, 14, 14, 1);
     }
 }
 
@@ -57,12 +86,18 @@ body {
         --container-offset: var(--spacing-2);
     }
 }
+a {
+    color: var(--link-default);
+}
+a:hover {
+    color: var(--link-default-hovered);
+}
 
 ts-map {
     height: 100dvh;
     position: relative;
 }
-ts-timeline {
+/*ts-timeline {
     position: fixed;
     bottom: 0;
     left: 0;
@@ -71,7 +106,7 @@ ts-timeline {
     background-color: oklch(
         from var(--color-background) l c h / calc(alpha - 0.2)
     );
-}
+}*/
 
 ts-loader {
     position: absolute;
