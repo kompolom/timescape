@@ -53,10 +53,10 @@ export class Store {
       ),
       toArray(),
       switchMap((arr) => {
-        if (arr.length) {
-          return of(arr);
-        }
-        console.debug("Load from wikidata");
+        // if (arr.length) {
+        //   return of(arr);
+        // }
+        // console.debug("Load from wikidata");
         return loadData({ range: dateRange, bbox, limit: 500 }).pipe(
           map((events) => events.map(HistoricalEvent.create)),
           tap((he) => this.addEvents(he)),
