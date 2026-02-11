@@ -2,17 +2,64 @@ import { EventDTO } from "./dto/historical-event.dto.js";
 import {
   WBK,
   simplifySparqlResults,
+  getImageUrl,
+  wikibaseTimeToISOString,
+  getSitelinkUrl,
 } from "https://cdn.jsdelivr.net/npm/wikibase-sdk@11.2.1/+esm";
 import { ISODateRange } from "./value-objects/iso-range.js";
 import { BBox } from "./value-objects/bbox.js";
 import { fromFetch } from "https://cdn.jsdelivr.net/npm/rxjs@7.8.1/fetch/+esm";
 import { map } from "https://cdn.jsdelivr.net/npm/rxjs@7.8.2/+esm";
 import { DetailedEventDTO } from "./dto/detailed-event.dto.js";
+import { GeoPoint } from "./value-objects/geopoint.js";
+import { getCurrentLanguage, getLanguagesWithFallback } from "./util/lang.js";
 
 const wdk = WBK({
   instance: "https://www.wikidata.org",
   sparqlEndpoint: "https://query.wikidata.org/sparql",
 });
+
+const WIKIDATA_PROPERTIES = {
+  /** @url https://www.wikidata.org/wiki/Property:P580 */
+  StartTime: "P580",
+  /** @url https://www.wikidata.org/wiki/Property:P582 */
+  EndTime: "P582",
+  /** @url https://www.wikidata.org/wiki/Property:P625 */
+  Coords: "P625",
+  /** @url https://www.wikidata.org/wiki/Property:P276 */
+  Location: "P276",
+  /** @url https://www.wikidata.org/wiki/Property:P710 */
+  Participant: "P710",
+  /** @url https://www.wikidata.org/wiki/Property:P18 */
+  Image: "P18",
+  /** @url https://www.wikidata.org/wiki/Property:P373 */
+  CommonsCategory: "P373",
+};
+
+/**
+ * Get translated text according to language preferences
+ * @param {string[]} languages
+ * @param {Record<string, string>} prop
+ * @returns {string|undefined}
+ */
+const getTranslatedValue = (languages, prop) => {
+  for (const lang of languages) {
+    if (prop[lang]) return prop[lang];
+  }
+};
+/**
+ * @param {{ claims: Record<string, string[]>}} entity simplified entity
+ * @param {string} claim claim ID
+ * @returns { string[]}
+ */
+const getEntityClaimValues = (entity, claim) => entity.claims[claim] || [];
+/**
+ * @param {{ claims: Record<string, string[]>}} entity simplified entity
+ * @param {string} claim claim ID
+ * @returns { string|undefined}
+ */
+const getEntityClaimValue = (entity, claim) =>
+  getEntityClaimValues(entity, claim)[0];
 
 /**
  * Query wikidata
@@ -49,7 +96,7 @@ export const loadData = (query) => {
               geof:latitude(?coord) <= ${query.bbox.maxLat} &&
               geof:longitude(?coord) >= ${query.bbox.minLon} &&
               geof:longitude(?coord) <= ${query.bbox.maxLon})
-      SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],mul,en". }
+      SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],mul,${getLanguagesWithFallback(["en"]).join(",")}". }
     }
     GROUP BY ?event ?eventLabel ?start ?end
     ORDER BY ?start
@@ -70,85 +117,64 @@ export const loadData = (query) => {
 };
 
 function parseWikidataEvent(json) {
-  const entity = Object.values(json.entities)[0];
-  const id = entity.id;
-
+  const LANGS = getLanguagesWithFallback(["en"]);
+  const entity = wdk.simplify.entity(Object.values(json.entities)[0]);
   // helpers
-  const getClaimValue = (prop) =>
-    entity.claims[prop]?.[0]?.mainsnak?.datavalue?.value ?? null;
+  const getClaim = getEntityClaimValue.bind(null, entity);
+  const getClaims = getEntityClaimValues.bind(null, entity);
 
-  const getTime = (prop) => {
-    const v = getClaimValue(prop);
-    if (!v) return null;
-    return v.time.slice(1, 11); // "+2025-09-16T00:00:00Z" → "2025-09-16"
-  };
+  const title = getTranslatedValue(LANGS, entity.labels) || entity.id;
+  const description = getTranslatedValue(LANGS, entity.descriptions) || "";
 
-  const getEntityList = (prop) =>
-    (entity.claims[prop] || []).map((c) => c.mainsnak.datavalue.value.id);
+  const r = [
+    wikibaseTimeToISOString(getClaim(WIKIDATA_PROPERTIES.StartTime)),
+    wikibaseTimeToISOString(getClaim(WIKIDATA_PROPERTIES.EndTime)),
+  ].join("/");
+  const dateRange = ISODateRange.canParse(r) ? ISODateRange.parse(r) : null;
 
-  const getSitelink = (site) => entity.sitelinks?.[site]?.title ?? null;
-
-  // 1. Основные поля
-  const title = entity.labels?.en?.value ?? id;
-  const description = entity.descriptions?.en?.value ?? "";
-
-  // 2. Даты
-  const dateStart = getTime("P580");
-  const dateEnd = getTime("P582");
-
-  // 3. Координаты (P625)
-  const coordsRaw = getClaimValue("P625");
-  const coords = coordsRaw ? [coordsRaw.longitude, coordsRaw.latitude] : null;
-
-  // 4. Места (P276)
-  const placeIds = getEntityList("P276");
-
-  // 5. Участники (P710)
-  const participantIds = getEntityList("P710");
-
-  // 6. Wikipedia
-  const wikipediaTitle = getSitelink("enwiki");
-  const wikipedia = wikipediaTitle
-    ? {
-        title: wikipediaTitle,
-        url: `https://en.wikipedia.org/wiki/${encodeURIComponent(
-          wikipediaTitle,
-        )}`,
-      }
+  const coordsRaw = getClaim(WIKIDATA_PROPERTIES.Coords);
+  const coords = coordsRaw
+    ? GeoPoint.create({ latitude: coordsRaw[0], longitude: coordsRaw[1] })
     : null;
 
-  // 7. Медиа
-  const imageName = getClaimValue("P18");
-  const commonsCategory = getClaimValue("P373");
+  const placeIds = getClaims(WIKIDATA_PROPERTIES.Location);
+  const participantIds = getClaims(WIKIDATA_PROPERTIES.Participant);
+
+  const priority = LANGS.map((lang) => lang + "wiki").concat("commonswiki");
+  let url = null;
+  for (const site of priority) {
+    if (entity.sitelinks[site]) {
+      url = getSitelinkUrl({ site, title: entity.sitelinks[site] });
+      break;
+    }
+  }
+  debugger;
+
+  const imageName = getClaim(WIKIDATA_PROPERTIES.Image);
+  const commonsCategory = getClaim(WIKIDATA_PROPERTIES.CommonsCategory);
 
   const media = {
-    image: imageName
-      ? `https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(
-          imageName,
-        )}`
-      : null,
+    image: imageName ? getImageUrl(imageName, 600) : null,
     commonsCategory,
   };
 
-  return {
-    id,
+  return new DetailedEventDTO(
+    entity.id,
     title,
     description,
-    dateStart,
-    dateEnd,
+    dateRange,
     coords,
-    place: placeIds.map((id) => ({ id })), // можно позже обогащать label'ами
-    participants: participantIds.map((id) => ({ id })),
-    wikipedia,
+    placeIds,
     media,
-  };
+    url,
+    participantIds,
+  );
 }
 
 export const loadEntityById = (id) => {
-  const languages = ["en", "mul"];
   const url = wdk.getEntities({
     ids: [id],
-    languages,
+    languages: getLanguagesWithFallback(["en"]),
     format: "json",
   });
   return fromFetch(url, { selector: (res) => res.json() }).pipe(
