@@ -9,15 +9,56 @@ import {
 import { ISODateRange } from "./value-objects/iso-range.js";
 import { BBox } from "./value-objects/bbox.js";
 import { fromFetch } from "https://cdn.jsdelivr.net/npm/rxjs@7.8.1/fetch/+esm";
-import { map } from "https://cdn.jsdelivr.net/npm/rxjs@7.8.2/+esm";
+import {
+  map,
+  switchMap,
+  from,
+} from "https://cdn.jsdelivr.net/npm/rxjs@7.8.2/+esm";
 import { DetailedEventDTO } from "./dto/detailed-event.dto.js";
+import { PersonDTO } from "./dto/person.dto.js";
 import { GeoPoint } from "./value-objects/geopoint.js";
-import { getCurrentLanguage, getLanguagesWithFallback } from "./util/lang.js";
+import { getLanguagesWithFallback } from "./util/lang.js";
 
 const wdk = WBK({
   instance: "https://www.wikidata.org",
   sparqlEndpoint: "https://query.wikidata.org/sparql",
 });
+export async function fetchWikipediaSummary(title, lang = "en") {
+  const url = `https://${lang}.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`;
+
+  try {
+    const data = await fetch(url).then((r) => r.json());
+
+    return {
+      extract: data.extract ?? null,
+      description: data.description ?? null,
+      thumbnail: data.thumbnail?.source ?? null,
+      originalImage: data.originalimage?.source ?? null,
+      contentUrls: data.content_urls ?? null,
+    };
+  } catch (err) {
+    console.warn("Failed to load Wikipedia summary:", err);
+    return null;
+  }
+}
+export async function fetchWikipediaMediaList(title, lang = "en") {
+  const url = `https://${lang}.wikipedia.org/api/rest_v1/page/media-list/${encodeURIComponent(title)}`;
+
+  try {
+    const data = await fetch(url).then((r) => r.json());
+
+    return data.items
+      .filter((item) => item.type === "image")
+      .map((item) => ({
+        title: item.title,
+        src: item.original?.source ?? null,
+        thumbnail: item.thumbnail?.source ?? null,
+      }));
+  } catch (err) {
+    console.warn("Failed to load Wikipedia media list:", err);
+    return [];
+  }
+}
 
 const WIKIDATA_PROPERTIES = {
   /** @url https://www.wikidata.org/wiki/Property:P580 */
@@ -116,7 +157,36 @@ export const loadData = (query) => {
   );
 };
 
-function parseWikidataEvent(json) {
+/**
+ *
+ * @param {any} entity
+ * @returns {PersonDTO} person dto
+ */
+function parsePerson(entity) {
+  const LANGS = getLanguagesWithFallback(["en"]);
+  const sites = LANGS.map((lang) => lang + "wiki").concat(["commonswiki"]);
+  const name = getTranslatedValue(LANGS, entity.labels) || entity.id;
+  const description = getTranslatedValue(LANGS, entity.descriptions) || "";
+  const imageName = getEntityClaimValue(entity, WIKIDATA_PROPERTIES.Image);
+  let url = null;
+  for (const site of sites) {
+    if (entity.sitelinks[site]) {
+      url = getSitelinkUrl({
+        site: site,
+        title: entity.sitelinks[site],
+      });
+      break;
+    }
+  }
+  return new PersonDTO(
+    name,
+    description,
+    imageName ? getImageUrl(imageName, 600) : null,
+    url,
+  );
+}
+
+async function parseWikidataEvent(json) {
   const LANGS = getLanguagesWithFallback(["en"]);
   const entity = wdk.simplify.entity(Object.values(json.entities)[0]);
   // helpers
@@ -124,7 +194,7 @@ function parseWikidataEvent(json) {
   const getClaims = getEntityClaimValues.bind(null, entity);
 
   const title = getTranslatedValue(LANGS, entity.labels) || entity.id;
-  const description = getTranslatedValue(LANGS, entity.descriptions) || "";
+  const description = getTranslatedValue(LANGS, entity.descriptions) ?? "";
 
   const r = [
     wikibaseTimeToISOString(getClaim(WIKIDATA_PROPERTIES.StartTime)),
@@ -140,15 +210,57 @@ function parseWikidataEvent(json) {
   const placeIds = getClaims(WIKIDATA_PROPERTIES.Location);
   const participantIds = getClaims(WIKIDATA_PROPERTIES.Participant);
 
-  const priority = LANGS.map((lang) => lang + "wiki").concat("commonswiki");
-  let url = null;
-  for (const site of priority) {
-    if (entity.sitelinks[site]) {
-      url = getSitelinkUrl({ site, title: entity.sitelinks[site] });
+  const priority = LANGS.map((lang) => ({ lang, site: lang + "wiki" })).concat([
+    {
+      lang: "en",
+      site: "commonswiki",
+    },
+  ]);
+  let wikipedia = {
+    url: null,
+    summary: "",
+    media: null,
+  };
+  for (const item of priority) {
+    if (entity.sitelinks[item.site]) {
+      wikipedia.url = getSitelinkUrl({
+        site: item.site,
+        title: entity.sitelinks[item.site],
+      });
+      const summary = await fetchWikipediaSummary(
+        entity.sitelinks[item.site],
+        item.lang,
+      );
+      wikipedia.summary = summary?.extract;
+      // wikipedia.media = await fetchWikipediaMediaList(
+      //   entity.sitelinks[item.site],
+      //   item.lang,
+      // );
       break;
     }
   }
-  debugger;
+
+  // const places = await fetch(
+  //   wdk.getEntities({
+  //     ids: placeIds,
+  //     props: ["info"],
+  //     languages: getLanguagesWithFallback(["en"]),
+  //   }),
+  // )
+  //   .then((r) => r.json())
+  //   .then((res) => wdk.simplify.entities(res.entities));
+  const participants = participantIds?.length
+    ? await fetch(
+        wdk.getEntities({
+          ids: participantIds,
+          languages: getLanguagesWithFallback(["en"]),
+        }),
+      )
+        .then((r) => r.json())
+        .then((res) =>
+          res.entities ? wdk.simplify.entities(res.entities) : [],
+        )
+    : [];
 
   const imageName = getClaim(WIKIDATA_PROPERTIES.Image);
   const commonsCategory = getClaim(WIKIDATA_PROPERTIES.CommonsCategory);
@@ -161,13 +273,16 @@ function parseWikidataEvent(json) {
   return new DetailedEventDTO(
     entity.id,
     title,
-    description,
+    [wikipedia.summary, description]
+      .filter(Boolean)
+      .sort((a, b) => a.length - b.length)
+      .pop(),
     dateRange,
     coords,
     placeIds,
     media,
-    url,
-    participantIds,
+    wikipedia.url,
+    Object.values(participants).map(parsePerson),
   );
 }
 
@@ -178,8 +293,8 @@ export const loadEntityById = (id) => {
     format: "json",
   });
   return fromFetch(url, { selector: (res) => res.json() }).pipe(
-    map((data) => {
-      return parseWikidataEvent(data);
+    switchMap((data) => {
+      return from(parseWikidataEvent(data));
     }),
   );
 };

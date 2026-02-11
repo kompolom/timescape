@@ -102,12 +102,15 @@ export class TSEventPanel extends LitElement {
       bottom: 0;
       width: 400px;
       height: 100dvh;
+      max-height: 100dvh;
       transform: translateX(-100%);
       transition-property: transform, opacity;
       transition-duration: 200ms;
       transition-timing-function: cubic-bezier(0, 0, 0.2, 1);
       background-color: var(--color-background);
       z-index: 3;
+      box-sizing: border-box;
+      padding-bottom: var(--spacing-2);
     }
     .event-panel[empty] {
       opacity: 0;
@@ -118,6 +121,8 @@ export class TSEventPanel extends LitElement {
     }
     .wrapper {
       overflow-x: hidden;
+      overflow-y: auto;
+      max-height: 100%;
       display: grid;
       gap: var(--spacing-1);
     }

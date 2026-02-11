@@ -1,13 +1,17 @@
+// @ts-check
+
 /**
- * @param {string} id
- * @param {string} title
- * @param {string} description
- * @param {import('../value-objects/iso-range').ISODateRange} dateRange
- * @param {import('../value-objects/geopoint').GeoPoint} geopoint
- * @param {string[]} placeId
- * @param {{ image: string; commonsCategory: string }} media
- * @param {{tile: string; url: string}} wikipedia
- * @param {string[]} participants
+ * Detailed description of event
+ * @class
+ * @property {string} id
+ * @property {string} title
+ * @property {string} description
+ * @property {import('../value-objects/iso-range').ISODateRange} dateRange
+ * @property {import('../value-objects/geopoint').GeoPoint} geopoint
+ * @property {string[]} place
+ * @property {{ image: string; commonsCategory: string }} media
+ * @property {{tile: string; url: string}} wikipedia
+ * @property {Array<import('./person.dto').PersonDTO>} participants
  */
 export class DetailedEventDTO {
   /**
@@ -16,30 +20,30 @@ export class DetailedEventDTO {
    * @param {string} description
    * @param {import('../value-objects/iso-range').ISODateRange} dateRange
    * @param {import('../value-objects/geopoint').GeoPoint} geopoint
-   * @param {string} placeId
+   * @param {string} place
    * @param {{ image: string; commonsCategory: string }} media
-   * @param {string} wikipedia
-   * @param {string[]} participants
+   * @param {string} wikipedia related wiki page
+   * @param {Array<import('./person.dto').PersonDTO>} participants
    */
   constructor(
     id,
     title,
     description,
-    date,
+    dateRange,
     geopoint,
-    placeId,
+    place,
     media,
     wikipedia,
-    paritcipants,
+    participants,
   ) {
     this.id = id;
     this.title = title;
     this.description = description;
-    this.date = date;
+    this.date = dateRange;
     this.geopoint = geopoint;
-    this.placeId = placeId;
+    this.place = place;
     this.media = media;
     this.wikipedia = wikipedia;
-    this.participants = paritcipants;
+    this.participants = participants;
   }
 }
