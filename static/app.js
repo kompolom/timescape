@@ -56,7 +56,7 @@ export class Timescape {
       this.#panel.eventid = id;
       const event = this.#store.getEventById(id);
       if (event) {
-        this.#map.center = event.position;
+        this.#map.selectEvent(event);
       }
     });
   }

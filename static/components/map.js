@@ -39,6 +39,18 @@ const markerStyle = new Style({
   }),
 });
 
+const markerSelectedStyle = new Style({
+  image: new Icon({
+    src: "/static/assets/marker-selected.svg",
+    anchor: [0.5, 1],
+  }),
+  text: new Text({
+    fill: new Fill({ color: "#405368" }),
+    textAlign: "center",
+    textBaseline: "middle",
+  }),
+});
+
 const clusterStyle = (count) =>
   new Style({
     image: new Circle({
@@ -56,7 +68,9 @@ const clusterStyle = (count) =>
   });
 
 export class TSMap extends LitElement {
+  /** @type {Map} */
   #ol;
+  /** @type {VectorLayer} */
   #markersLayer;
   static properties = {
     center: { type: String },
@@ -74,6 +88,31 @@ export class TSMap extends LitElement {
 
   render() {
     return html`<div id="root"><slot></slot></div>`;
+  }
+
+  /**
+   *
+   * @param {import('../entities/historical-event').HistoricalEvent} event
+   */
+  selectEvent(event) {
+    this.#markersLayer
+      .getSource()
+      .getFeatures()
+      .forEach((feature) => {
+        const clustered = feature.get("features");
+        if (clustered && clustered.length > 1) {
+          //cluster
+          return;
+        } else {
+          const originalFeature = clustered ? clustered[0] : feature;
+          const id = originalFeature.getId();
+          if (id === event.id) {
+            feature.setStyle(markerSelectedStyle);
+          } else {
+            feature.setStyle(markerStyle);
+          }
+        }
+      });
   }
 
   connectedCallback() {
