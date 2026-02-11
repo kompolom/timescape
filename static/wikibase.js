@@ -16,6 +16,7 @@ import {
 } from "https://cdn.jsdelivr.net/npm/rxjs@7.8.2/+esm";
 import { DetailedEventDTO } from "./dto/detailed-event.dto.js";
 import { PersonDTO } from "./dto/person.dto.js";
+import { PlaceDTO } from "./dto/place.dto.js";
 import { GeoPoint } from "./value-objects/geopoint.js";
 import { getLanguagesWithFallback } from "./util/lang.js";
 
@@ -186,6 +187,61 @@ function parsePerson(entity) {
   );
 }
 
+/**
+ *
+ * @param {any} entity
+ * @returns {PlaceDTO}
+ */
+function parsePlace(entity) {
+  const LANGS = getLanguagesWithFallback(["en"]);
+  const name = getTranslatedValue(LANGS, entity.labels) || "";
+  const description = getTranslatedValue(LANGS, entity.descriptions) || "";
+  const imageName = getEntityClaimValue(entity, WIKIDATA_PROPERTIES.Image);
+  return new PlaceDTO(
+    name,
+    description,
+    imageName ? getImageUrl(imageName, 600) : null,
+  );
+}
+
+/**
+ * Load persons information from wikidata
+ * @param {string[]} ids
+ * @returns {Promise<PersonDTO[]>}
+ */
+export function getPersons(ids) {
+  if (!Array.isArray(ids) || !ids.length) {
+    return Promise.resolve([]);
+  }
+  return fetch(
+    wdk.getEntities({
+      ids,
+      languages: getLanguagesWithFallback(["en"]),
+    }),
+  )
+    .then((r) => r.json())
+    .then((res) => (res.entities ? wdk.simplify.entities(res.entities) : {}))
+    .then((persons) => Object.values(persons).map(parsePerson));
+}
+
+/**
+ * Load places info
+ * @param {string[]} ids
+ * @returns {Promise<PlaceDTO[]>}
+ */
+export function getPlaces(ids) {
+  if (!Array.isArray(ids) || !ids.length) return Promise.resolve([]);
+  return fetch(
+    wdk.getEntities({
+      ids,
+      languages: getLanguagesWithFallback(["en"]),
+    }),
+  )
+    .then((r) => r.json())
+    .then((res) => (res.entities ? wdk.simplify.entities(res.entities) : {}))
+    .then((places) => Object.values(places).map(parsePlace));
+}
+
 async function parseWikidataEvent(json) {
   const LANGS = getLanguagesWithFallback(["en"]);
   const entity = wdk.simplify.entity(Object.values(json.entities)[0]);
@@ -207,7 +263,6 @@ async function parseWikidataEvent(json) {
     ? GeoPoint.create({ latitude: coordsRaw[0], longitude: coordsRaw[1] })
     : null;
 
-  const placeIds = getClaims(WIKIDATA_PROPERTIES.Location);
   const participantIds = getClaims(WIKIDATA_PROPERTIES.Participant);
 
   const priority = LANGS.map((lang) => ({ lang, site: lang + "wiki" })).concat([
@@ -240,34 +295,11 @@ async function parseWikidataEvent(json) {
     }
   }
 
-  // const places = await fetch(
-  //   wdk.getEntities({
-  //     ids: placeIds,
-  //     props: ["info"],
-  //     languages: getLanguagesWithFallback(["en"]),
-  //   }),
-  // )
-  //   .then((r) => r.json())
-  //   .then((res) => wdk.simplify.entities(res.entities));
-  const participants = participantIds?.length
-    ? await fetch(
-        wdk.getEntities({
-          ids: participantIds,
-          languages: getLanguagesWithFallback(["en"]),
-        }),
-      )
-        .then((r) => r.json())
-        .then((res) =>
-          res.entities ? wdk.simplify.entities(res.entities) : [],
-        )
-    : [];
-
   const imageName = getClaim(WIKIDATA_PROPERTIES.Image);
-  const commonsCategory = getClaim(WIKIDATA_PROPERTIES.CommonsCategory);
 
   const media = {
     image: imageName ? getImageUrl(imageName, 600) : null,
-    commonsCategory,
+    commonsCategory: getClaim(WIKIDATA_PROPERTIES.CommonsCategory),
   };
 
   return new DetailedEventDTO(
@@ -279,10 +311,10 @@ async function parseWikidataEvent(json) {
       .pop(),
     dateRange,
     coords,
-    placeIds,
+    await getPlaces(getClaims(WIKIDATA_PROPERTIES.Location)),
     media,
     wikipedia.url,
-    Object.values(participants).map(parsePerson),
+    await getPersons(participantIds),
   );
 }
 

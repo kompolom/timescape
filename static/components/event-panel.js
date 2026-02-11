@@ -123,6 +123,7 @@ export class TSEventPanel extends LitElement {
       overflow-x: hidden;
       overflow-y: auto;
       max-height: 100%;
+      scrollbar-width: none;
       display: grid;
       gap: var(--spacing-1);
     }

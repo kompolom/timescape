@@ -6,6 +6,10 @@ import {
 import { getCurrentLanguage } from "../util/lang.js";
 
 /**
+ * Event description
+ * @class
+ * @constructor
+ * @public
  * @property {import('../dto/detailed-event.dto').DetailedEventDTO} data event data
  */
 export class TSEventDescription extends LitElement {
@@ -14,6 +18,10 @@ export class TSEventDescription extends LitElement {
     data: {},
   };
 
+  /**
+   * @param {import('../dto/detailed-event.dto').DetailedEventDTO} data
+   * @returns
+   */
   static renderPicture(data) {
     return data.media
       ? html`<picture>
@@ -42,7 +50,7 @@ export class TSEventDescription extends LitElement {
   #renderParticipants() {
     /** @type {import('../dto/person.dto.js').PersonDTO[]} */
     const participants = this.data.participants;
-    if (!participants || !participants.length) return null;
+    if (!Array.isArray(participants) || !participants.length) return null;
     return html`<ul>
       ${participants.map(
         (participant) =>
@@ -58,15 +66,35 @@ export class TSEventDescription extends LitElement {
       <ul></ul>
     </ul>`;
   }
+  #renderEventPlace() {
+    /** @type {import('../dto/place.dto.js').PlaceDTO[]} */
+    const places = this.data.place;
+    if (!Array.isArray(places) || !places.length) return null;
+    return html`<span
+      >${places.map((place) =>
+        place.url
+          ? html`<a class="event-location" href="${place.url}" target="_blank"
+              >${place.title}</a
+            >`
+          : html`<span class="event-location">${place.title}</span>`,
+      )}</span
+    >`;
+  }
 
   render() {
     console.debug(this.data);
     return html`<article>
       ${this.nopicture ? null : TSEventDescription.renderPicture(this.data)}
-      ${this.#renderTitle()} ${this.#renderEventDuration()}
+      ${this.#renderTitle()}
+      <section class="summary">
+        ${this.#renderEventDuration()} &nbsp;
+        <span class="location-list">${this.#renderEventPlace()}</span>
+      </section>
       <p>${this.data.description}</p>
-      ${this.data?.participant?.length ? html`<h3>Participants</h3>` : null}
-      ${this.#renderParticipants()}
+      <section>
+        ${this.data?.participants?.length ? html`<h3>Participants</h3>` : null}
+        ${this.#renderParticipants()}
+      </section>
       ${this.data.wikipedia
         ? html`<a href="${this.data.wikipedia}" target="_blank">Read more</a>`
         : null}
@@ -89,9 +117,16 @@ export class TSEventDescription extends LitElement {
     a:hover {
       color: var(--link-default-hovered);
     }
-    time {
+    .summary {
       color: var(--text-secondary);
       font-family: math;
+    }
+    .summary a {
+      color: var(--text-secondary);
+      font-family: math;
+    }
+    .event-location:not(:last-child)::after {
+      content: ", ";
     }
     ul {
       padding: 0;

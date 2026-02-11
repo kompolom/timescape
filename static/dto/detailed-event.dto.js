@@ -8,7 +8,7 @@
  * @property {string} description
  * @property {import('../value-objects/iso-range').ISODateRange} dateRange
  * @property {import('../value-objects/geopoint').GeoPoint} geopoint
- * @property {string[]} place
+ * @property {Array<import('./place.dto').PlaceDTO>} place
  * @property {{ image: string; commonsCategory: string }} media
  * @property {{tile: string; url: string}} wikipedia
  * @property {Array<import('./person.dto').PersonDTO>} participants
@@ -20,7 +20,7 @@ export class DetailedEventDTO {
    * @param {string} description
    * @param {import('../value-objects/iso-range').ISODateRange} dateRange
    * @param {import('../value-objects/geopoint').GeoPoint} geopoint
-   * @param {string} place
+   * @param {Array<import('./place.dto').PlaceDTO>} place
    * @param {{ image: string; commonsCategory: string }} media
    * @param {string} wikipedia related wiki page
    * @param {Array<import('./person.dto').PersonDTO>} participants
