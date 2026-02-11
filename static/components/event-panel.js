@@ -118,9 +118,15 @@ export class TSEventPanel extends LitElement {
     }
     .wrapper {
       overflow-x: hidden;
+      display: grid;
+      gap: var(--spacing-1);
     }
     .event-picture {
       max-width: 100%;
+    }
+    .event-info {
+      display: grid;
+      gap: var(--spacing-1);
     }
     .closer {
       z-index: 0;
