@@ -7,6 +7,7 @@ import {
 export class TSSkeleton extends LitElement {
   static properties = {
     variant: { reflect: true, type: String },
+    style: { type: String, reflect: true },
   };
   render() {
     return html`<span class="skeleton"><slot></slot></span>`;
@@ -41,7 +42,6 @@ export class TSSkeleton extends LitElement {
     :host([variant="rectangular"]) {
       border-radius: 0;
       height: 190px;
-      transform: scale(1, 0.6);
     }
   `;
 }
