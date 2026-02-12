@@ -117,7 +117,7 @@ export class TSMap extends LitElement {
 
   connectedCallback() {
     super.connectedCallback();
-    this.renderRoot.adoptedStyleSheets.push(olStyles);
+    this.renderRoot.adoptedStyleSheets.unshift(olStyles);
   }
 
   firstUpdated() {
@@ -226,10 +226,17 @@ export class TSMap extends LitElement {
   static styles = css`
     :host {
       display: block;
+      --ol-background-color: var(--color-background);
+      --ol-subtle-foreground-color: var(--text-secondary);
+      --ol-foreground-color: var(--text-primary);
     }
     #root {
       width: 100%;
       height: 100%;
+    }
+    .ol-zoom {
+      right: 0.5em;
+      left: auto;
     }
     @media (prefers-color-scheme: dark) {
       .ol-layer {

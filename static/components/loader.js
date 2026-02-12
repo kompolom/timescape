@@ -55,6 +55,7 @@ export class TSLoader extends LitElement {
     :host {
       display: block;
       visibility: hidden;
+      color: var(--color-background);
     }
     :host:has(svg[animated=""]) {
       visibility: visible;
