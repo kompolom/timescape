@@ -330,3 +330,22 @@ export const loadEntityById = (id) => {
     }),
   );
 };
+
+/**
+ *
+ * @param {string} theme
+ */
+export async function searchTheme(theme) {
+  const searchURL = wdk.searchEntities({
+    search: theme,
+    languages: getLanguagesWithFallback(["en"]),
+    limit: 5,
+  });
+  const r = await fetch(searchURL)
+    .then((r) => r.json())
+    .then((res) => {
+      console.log(res);
+    });
+  debugger;
+  const sparql = `SELECT ?event WHERE { ?event wdt:P361 wd:${topicId}. } LIMIT 200 `;
+}

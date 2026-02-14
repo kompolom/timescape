@@ -57,4 +57,19 @@ export class ISODateRange {
       );
     return new ISODateRange(left, right);
   }
+
+  static contains(r1, r2) {
+    return r1.start <= r2.start && r1.end >= r2.end;
+  }
+
+  static overlaps(r1, r2) {
+    return r1.start <= r2.end || r1.end <= r2.start;
+  }
+
+  static join(r1, r2) {
+    return new ISODateRange(
+      Math.min(r1.start, r2.start),
+      Math.max(r1.end, r2.end),
+    );
+  }
 }

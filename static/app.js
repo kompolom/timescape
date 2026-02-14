@@ -11,6 +11,8 @@ import {
 import { GeoPoint } from "./value-objects/geopoint.js";
 import { Store } from "./store.js";
 import { HistoricalEvent } from "./entities/historical-event.js";
+import { searchTheme } from "./wikibase.js";
+import { BBox } from "./value-objects/bbox.js";
 
 export class Timescape {
   #map = null;
@@ -32,7 +34,7 @@ export class Timescape {
     );
     const map$ = fromEvent(this.#map, "change").pipe(
       map((e) => e.target.boundaries),
-      startWith(this.#map.boundaries),
+      startWith(BBox.fromArray([0, 0, 0, 0])),
     );
     this.#observable = combineLatest([time$, map$]).pipe(
       debounceTime(400),
@@ -101,5 +103,13 @@ export class Timescape {
         });
       }, reject);
     });
+  }
+
+  /**
+   * search events by theme
+   * @param {string} theme
+   */
+  search(theme) {
+    searchTheme(theme);
   }
 }
