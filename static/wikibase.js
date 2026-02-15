@@ -76,6 +76,14 @@ const WIKIDATA_PROPERTIES = {
   Image: "P18",
   /** @url https://www.wikidata.org/wiki/Property:P373 */
   CommonsCategory: "P373",
+  /** @url https://www.wikidata.org/wiki/Property:P1332 */
+  NorthPoint: "P1332",
+  SouthPoint: "P1333",
+  EastPoint: "P1334",
+  WestPoint: "P1335",
+  /** @url https://www.wikidata.org/wiki/Property:P30 */
+  Continent: "P30",
+  Capital: "P36",
 };
 
 /**
@@ -346,6 +354,63 @@ export async function searchTheme(theme) {
     .then((res) => {
       console.log(res);
     });
-  debugger;
-  const sparql = `SELECT ?event WHERE { ?event wdt:P361 wd:${topicId}. } LIMIT 200 `;
+}
+
+/**
+ *
+ * @param {string} itemID wikibase entitiy ID
+ */
+export async function loadThemeInfo(itemID) {
+  const LANGS = getLanguagesWithFallback(["en"]);
+  const url = wdk.getEntities({
+    ids: [itemID],
+    languages: LANGS,
+  });
+  const entity = await fetch(url)
+    .then((res) => res.json())
+    .then((r) => (r.entities ? wdk.simplify.entity(r.entities[itemID]) : null));
+  const start = getEntityClaimValue(entity, WIKIDATA_PROPERTIES.StartTime);
+  const end = getEntityClaimValue(entity, WIKIDATA_PROPERTIES.EndTime);
+  const range =
+    start && end ? new ISODateRange(new Date(start), new Date(end)) : null;
+
+  const coordsRaw = getEntityClaimValue(entity, WIKIDATA_PROPERTIES.Coords);
+  const center = coordsRaw
+    ? GeoPoint.create({ latitude: coordsRaw[0], longitude: coordsRaw[1] })
+    : null;
+  const continentID = getEntityClaimValue(
+    entity,
+    WIKIDATA_PROPERTIES.Continent,
+  );
+  let bbox = bboxFromClaims(entity);
+  if (!bbox) {
+    const continent = await fetch(
+      wdk.getEntities({
+        ids: [continentID],
+        props: ["claims"],
+        language: "en",
+      }),
+    )
+      .then((res) => res.json())
+      .then((r) =>
+        r.entities ? wdk.simplify.entity(r.entities[continentID]) : null,
+      );
+    bbox = bboxFromClaims(continent);
+  }
+  return {
+    id: entity.id,
+    range,
+    bbox,
+    center,
+  };
+}
+function bboxFromClaims(entity) {
+  const north = getEntityClaimValue(entity, WIKIDATA_PROPERTIES.NorthPoint),
+    south = getEntityClaimValue(entity, WIKIDATA_PROPERTIES.SouthPoint),
+    east = getEntityClaimValue(entity, WIKIDATA_PROPERTIES.EastPoint),
+    west = getEntityClaimValue(entity, WIKIDATA_PROPERTIES.WestPoint);
+  if (!north || !south || !east || !west) {
+    return null;
+  }
+  return new BBox(west[1], south[0], east[1], north[0]);
 }

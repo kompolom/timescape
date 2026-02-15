@@ -14,6 +14,7 @@ export class TSTimeline extends LitElement {
     open: { type: Boolean, reflect: true },
     items: { type: Array },
     selected: { type: String },
+    window: {},
     _open: { state: true, type: Boolean },
   };
 
@@ -98,7 +99,6 @@ export class TSTimeline extends LitElement {
 
   updated(changedProps) {
     if (changedProps.has("items")) {
-      console.debug("update items", this.items);
       this.#timeline.setItems(this.items);
     }
     if (changedProps.has("selected")) {
@@ -110,6 +110,9 @@ export class TSTimeline extends LitElement {
           detail: this.selected,
         }),
       );
+    }
+    if (changedProps.has("window")) {
+      this.#timeline.setWindow(this.window.start, this.window.end);
     }
   }
 

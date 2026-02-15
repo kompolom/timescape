@@ -76,6 +76,7 @@ export class TSMap extends LitElement {
     center: { type: String },
     zoom: { type: Number },
     markers: { type: Object },
+    bbox: {},
   };
 
   /**
@@ -197,6 +198,22 @@ export class TSMap extends LitElement {
     }
     if (changedProps.has("zoom")) {
       this.#ol.getView().setZoom(this.zoom);
+    }
+    if (changedProps.has("bbox")) {
+      const extent = transformExtent(
+        this.bbox.toArray(),
+        "EPSG:4326",
+        "EPSG:3857",
+      );
+      this.#ol.getView().fit(extent, {
+        duration: 500,
+        callback: () => {
+          console.debug({
+            in: this.bbox.toArray(),
+            out: this.boundaries.toArray(),
+          });
+        },
+      });
     }
     if (changedProps.has("markers")) {
       const features = (this.markers || []).map(this.#createMarker);

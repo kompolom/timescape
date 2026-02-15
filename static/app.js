@@ -11,7 +11,7 @@ import {
 import { GeoPoint } from "./value-objects/geopoint.js";
 import { Store } from "./store.js";
 import { HistoricalEvent } from "./entities/historical-event.js";
-import { searchTheme } from "./wikibase.js";
+import { loadThemeInfo, searchTheme } from "./wikibase.js";
 import { BBox } from "./value-objects/bbox.js";
 
 export class Timescape {
@@ -111,5 +111,22 @@ export class Timescape {
    */
   search(theme) {
     searchTheme(theme);
+  }
+
+  /**
+   *
+   * @param {string} itemId
+   */
+  async research(itemId) {
+    const data = await loadThemeInfo(itemId);
+    if (data.center) {
+      this.#map.center = data.center;
+    }
+    if (data.bbox) {
+      this.#map.bbox = data.bbox;
+    }
+    if (data.range) {
+      this.#timeline.window = data.range;
+    }
   }
 }
