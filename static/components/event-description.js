@@ -82,7 +82,6 @@ export class TSEventDescription extends LitElement {
   }
 
   render() {
-    console.debug(this.data);
     return html`<article>
       ${this.nopicture ? null : TSEventDescription.renderPicture(this.data)}
       ${this.#renderTitle()}
