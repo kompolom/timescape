@@ -131,6 +131,7 @@ export class TSTimeline extends LitElement {
       right: 0;
       width: 100dvw;
       min-height: 81px;
+      max-height: 80dvh;
       transform: translateY(100%);
       transition-property: transform, opacity;
       transition-duration: 200ms;
@@ -145,6 +146,7 @@ export class TSTimeline extends LitElement {
     .vis-timeline {
       font-family: sans-serif;
       font-size: 0.9rem;
+      overflox-y: auto;
     }
     .vis-time-axis .vis-text {
       color: inherit;
