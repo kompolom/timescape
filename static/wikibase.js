@@ -343,17 +343,21 @@ export const loadEntityById = (id) => {
  *
  * @param {string} theme
  */
-export async function searchTheme(theme) {
+export function searchTheme(theme) {
   const searchURL = wdk.searchEntities({
     search: theme,
     languages: getLanguagesWithFallback(["en"]),
     limit: 5,
   });
-  const r = await fetch(searchURL)
-    .then((r) => r.json())
-    .then((res) => {
-      console.log(res);
-    });
+  return fromFetch(searchURL, { selector: (res) => res.json() }).pipe(
+    map((res) =>
+      res.search.map((ent) => ({
+        id: ent.id,
+        label: ent.label,
+        description: ent.description,
+      })),
+    ),
+  );
 }
 
 /**
@@ -383,7 +387,7 @@ export async function loadThemeInfo(itemID) {
     WIKIDATA_PROPERTIES.Continent,
   );
   let bbox = bboxFromClaims(entity);
-  if (!bbox) {
+  if (!bbox && continentID) {
     const continent = await fetch(
       wdk.getEntities({
         ids: [continentID],

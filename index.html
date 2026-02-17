@@ -3,12 +3,21 @@
     <head>
         <title>Timescape</title>
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <link
+            rel="stylesheet"
+            href="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.20.1/cdn/themes/light.css"
+        />
+        <script
+            type="module"
+            src="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.20.1/cdn/shoelace.js"
+        ></script>
         <link rel="stylesheet" href="static/main.css" />
         <script src="static/main.js" type="module"></script>
     </head>
     <body>
         <ts-event-panel></ts-event-panel>
         <ts-map zoom="7"></ts-map>
+        <ts-search></ts-search>
         <ts-timeline></ts-timeline>
         <ts-loader></ts-loader>
     </body>

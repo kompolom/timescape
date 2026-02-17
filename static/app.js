@@ -20,12 +20,15 @@ export class Timescape {
   #loader = null;
   #observable = null;
   #panel = null;
+  #search = null;
   #store = new Store();
-  constructor(mapEl, timeline, loader, panel) {
+
+  constructor(mapEl, timeline, loader, panel, search) {
     this.#map = mapEl;
     this.#timeline = timeline;
     this.#loader = loader;
     this.#panel = panel;
+    this.#search = search;
 
     const time$ = fromEvent(this.#timeline, "rangechanged").pipe(
       map((e) => e.detail.range),
@@ -48,6 +51,11 @@ export class Timescape {
     const eventSelect$ = fromEvent(this.#timeline, "select").pipe(
       map((e) => e.detail),
     );
+    const eventSearch$ = fromEvent(this.#search, "search")
+      .pipe(map((e) => e.detail))
+      .subscribe((eID) => {
+        this.research(eID);
+      });
     marker$.subscribe((id) => {
       console.debug("Clicked marker:", id);
       this.#timeline.selected = id;

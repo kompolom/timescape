@@ -115,3 +115,10 @@ ts-loader {
     top: 0.5em;
     left: 0.5em;
 }
+
+ts-search {
+    position: fixed;
+    top: 0.5em;
+    left: 50%;
+    transform: translateX(-50%);
+}
