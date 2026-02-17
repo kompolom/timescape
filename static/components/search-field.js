@@ -18,6 +18,7 @@ import { searchTheme } from "../wikibase.js";
 
 export class SearchField extends LitElement {
   #typeSubscription;
+  #input;
   static properties = {
     _suggests: { state: true },
     _open: { state: true },
@@ -29,11 +30,11 @@ export class SearchField extends LitElement {
   }
 
   firstUpdated() {
-    const input = this.renderRoot.querySelector("sl-input");
-    this.#typeSubscription = fromEvent(input, "input")
+    this.#input = this.renderRoot.querySelector("sl-input");
+    this.#typeSubscription = fromEvent(this.#input, "input")
       .pipe(
         debounceTime(300),
-        map(() => input.value),
+        map(() => this.#input.value),
         filter((text) => text.length >= 3),
         switchMap((text) => searchTheme(text)),
       )
@@ -43,12 +44,18 @@ export class SearchField extends LitElement {
   render() {
     return html`<form @submit=${this.#onSubmit}>
       <input type="hidden" name="id" />
-      <sl-input name="q" placeholder="Search some historical period"></sl-input>
+      <sl-input
+        @focus=${this.#onInputFocus}
+        id="search"
+        name="q"
+        placeholder="Search some historical period"
+      ></sl-input>
       <sl-popup
         id="search-popup"
         anchor="search"
-        placement="bottom-start"
-        distance="4"
+        strategy="fixed"
+        placement="bottom-center"
+        sync="width"
         ?active=${this._suggests.length && this._open}
       >
         <sl-menu @sl-select=${this.#onSelect} id="search-results"
@@ -56,6 +63,10 @@ export class SearchField extends LitElement {
         >
       </sl-popup>
     </form>`;
+  }
+
+  #onInputFocus(e) {
+    this._open = true;
   }
 
   /**
@@ -68,6 +79,7 @@ export class SearchField extends LitElement {
   }
 
   #onSelect(e) {
+    this.#input.value = e.detail.item.getTextLabel();
     this._open = false;
     this.dispatchEvent(
       new CustomEvent("search", {
@@ -107,4 +119,14 @@ export class SearchField extends LitElement {
   disconnectedCallback() {
     this.#typeSubscription.unsubscribe();
   }
+  static styles = css`
+    :host {
+      display: block;
+    }
+    form,
+    sl-input,
+    sl-popup {
+      width: 100%;
+    }
+  `;
 }

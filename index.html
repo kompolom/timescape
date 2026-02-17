@@ -7,6 +7,10 @@
             rel="stylesheet"
             href="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.20.1/cdn/themes/light.css"
         />
+        <link
+            rel="stylesheet"
+            href="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.20.1/cdn/themes/dark.css"
+        />
         <script
             type="module"
             src="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.20.1/cdn/shoelace.js"
@@ -15,6 +19,29 @@
         <script src="static/main.js" type="module"></script>
     </head>
     <body>
+        <script>
+            function setSlTHeme(variant) {
+                const old =
+                    variant === "dark" ? "sl-theme-light" : "sl-theme-dark";
+                const next =
+                    variant === "dark" ? "sl-theme-dark" : "sl-theme-light";
+                if (document.body.classList.contains(old)) {
+                    document.body.classList.replace(old, next);
+                } else {
+                    document.body.classList.add(next);
+                }
+            }
+            const matcher = window.matchMedia("(prefers-color-scheme: dark)");
+            if (matcher.matches) {
+                setSlTHeme("dark");
+            } else {
+                setSlTHeme("light");
+            }
+            matcher.addEventListener("change", (event) => {
+                const newScheme = event.matches ? "dark" : "light";
+                setSlTHeme(newScheme);
+            });
+        </script>
         <ts-event-panel></ts-event-panel>
         <ts-map zoom="7"></ts-map>
         <ts-search></ts-search>

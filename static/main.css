@@ -97,16 +97,6 @@ ts-map {
     height: 100dvh;
     position: relative;
 }
-/*ts-timeline {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    color: var(--color-text);
-    background-color: oklch(
-        from var(--color-background) l c h / calc(alpha - 0.2)
-    );
-}*/
 
 ts-loader {
     position: absolute;
@@ -121,4 +111,6 @@ ts-search {
     top: 0.5em;
     left: 50%;
     transform: translateX(-50%);
+    width: 400px;
+    max-width: 80vw;
 }
