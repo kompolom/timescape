@@ -81,9 +81,13 @@ const WIKIDATA_PROPERTIES = {
   SouthPoint: "P1333",
   EastPoint: "P1334",
   WestPoint: "P1335",
+  Country: "P17",
   /** @url https://www.wikidata.org/wiki/Property:P30 */
   Continent: "P30",
   Capital: "P36",
+  InceptionDate: "P571",
+  DemolitionDate: "P576",
+  CenterCoordinates: "P5140",
 };
 
 /**
@@ -373,41 +377,72 @@ export async function loadThemeInfo(itemID) {
   const entity = await fetch(url)
     .then((res) => res.json())
     .then((r) => (r.entities ? wdk.simplify.entity(r.entities[itemID]) : null));
-  const start = getEntityClaimValue(entity, WIKIDATA_PROPERTIES.StartTime);
-  const end = getEntityClaimValue(entity, WIKIDATA_PROPERTIES.EndTime);
-  const range =
-    start && end ? new ISODateRange(new Date(start), new Date(end)) : null;
 
+  // range
+  let range = dateRangeFromClaims(
+    getEntityClaimValue(entity, WIKIDATA_PROPERTIES.StartTime),
+    getEntityClaimValue(entity, WIKIDATA_PROPERTIES.EndTime),
+  );
+  if (!range) {
+    range = dateRangeFromClaims(
+      getEntityClaimValue(entity, WIKIDATA_PROPERTIES.InceptionDate),
+      getEntityClaimValue(entity, WIKIDATA_PROPERTIES.DemolitionDate),
+    );
+  }
+
+  // coords
+  console.debug(entity);
+  return {
+    id: entity.id,
+    range,
+    ...(await getEntityGeography(entity)),
+  };
+}
+
+/**
+ *
+ * @param {} entity
+ * @returns {Promise<{ bbox?: BBox; center?: GeoPoint; zoom?: number}>}
+ */
+async function getEntityGeography(entity) {
   const coordsRaw = getEntityClaimValue(entity, WIKIDATA_PROPERTIES.Coords);
   const center = coordsRaw
     ? GeoPoint.create({ latitude: coordsRaw[0], longitude: coordsRaw[1] })
     : null;
-  const continentID = getEntityClaimValue(
-    entity,
-    WIKIDATA_PROPERTIES.Continent,
-  );
+  let zoom = undefined;
   let bbox = bboxFromClaims(entity);
-  if (!bbox && continentID) {
-    const continent = await fetch(
-      wdk.getEntities({
-        ids: [continentID],
-        props: ["claims"],
-        language: "en",
-      }),
-    )
-      .then((res) => res.json())
-      .then((r) =>
-        r.entities ? wdk.simplify.entity(r.entities[continentID]) : null,
-      );
-    bbox = bboxFromClaims(continent);
+  const levels = [
+    getEntityClaimValue(entity, WIKIDATA_PROPERTIES.Location),
+    getEntityClaimValue(entity, WIKIDATA_PROPERTIES.Country),
+    getEntityClaimValue(entity, WIKIDATA_PROPERTIES.Continent),
+  ];
+
+  for (let i = 0; i < levels.length; i++) {
+    if (bbox) {
+      console.debug("boundaries found on level", i - 1);
+      break;
+    }
+    if (!levels[i]) {
+      continue;
+    }
+    let nextEnt = await fetchEntityClaims(levels[i]);
+    bbox = bboxFromClaims(nextEnt);
+    levels[1] =
+      levels[1] || getEntityClaimValue(nextEnt, WIKIDATA_PROPERTIES.Country);
+    levels[2] =
+      levels[2] || getEntityClaimValue(nextEnt, WIKIDATA_PROPERTIES.Continent);
+  }
+
+  if (!bbox) {
+    zoom = 2;
   }
   return {
-    id: entity.id,
-    range,
-    bbox,
     center,
+    zoom,
+    bbox,
   };
 }
+
 function bboxFromClaims(entity) {
   const north = getEntityClaimValue(entity, WIKIDATA_PROPERTIES.NorthPoint),
     south = getEntityClaimValue(entity, WIKIDATA_PROPERTIES.SouthPoint),
@@ -417,4 +452,19 @@ function bboxFromClaims(entity) {
     return null;
   }
   return new BBox(west[1], south[0], east[1], north[0]);
+}
+
+function dateRangeFromClaims(start, end) {
+  if (start && end) {
+    return new ISODateRange(new Date(start), new Date(end));
+  }
+  return null;
+}
+
+async function fetchEntityClaims(id) {
+  return fetch(
+    wdk.getEntities({ ids: [id], props: ["claims"], language: "en" }),
+  )
+    .then((res) => res.json())
+    .then((r) => (r.entities ? wdk.simplify.entity(r.entities[id]) : null));
 }

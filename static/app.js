@@ -13,6 +13,7 @@ import { Store } from "./store.js";
 import { HistoricalEvent } from "./entities/historical-event.js";
 import { loadThemeInfo, searchTheme } from "./wikibase.js";
 import { BBox } from "./value-objects/bbox.js";
+import { ISODateRange } from "./value-objects/iso-range.js";
 
 export class Timescape {
   #map = null;
@@ -126,15 +127,27 @@ export class Timescape {
    * @param {string} itemId
    */
   async research(itemId) {
+    console.info("Start research of:", itemId);
     const data = await loadThemeInfo(itemId);
+    console.debug(data);
     if (data.center) {
       this.#map.center = data.center;
     }
     if (data.bbox) {
       this.#map.bbox = data.bbox;
+    } else if (data.zoom) {
+      this.#map.zoom = data.zoom;
     }
     if (data.range) {
       this.#timeline.window = data.range;
+    } else {
+      console.debug("fallback to last 100 years");
+      const now = new Date();
+      const defaultRange = new ISODateRange(
+        new Date(now.getFullYear() - 100, now.getMonth(), now.getDate()),
+        now,
+      );
+      this.#timeline.window = defaultRange;
     }
   }
 }
