@@ -99,7 +99,7 @@ export class Timescape {
        */
       (events) => {
         console.info("update timeline events");
-        console.table(events);
+        // console.table(events);
         this.#timeline.items = events.map((event) => ({
           id: event.id,
           content: event.label,
