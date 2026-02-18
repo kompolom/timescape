@@ -276,12 +276,6 @@ export class TSMap extends LitElement {
       );
       this.#ol.getView().fit(extent, {
         duration: 500,
-        callback: () => {
-          console.debug({
-            in: this.bbox.toArray(),
-            out: this.boundaries.toArray(),
-          });
-        },
       });
     }
     if (changedProps.has("markers")) {

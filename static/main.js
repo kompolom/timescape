@@ -15,6 +15,7 @@ const registerComponent = (name, ComponentClass) => {
 };
 
 const initComponents = () => {
+  console.groupCollapsed("Init components");
   registerComponent("ts-map", TSMap);
   registerComponent("ts-timeline", TSTimeline);
   registerComponent("ts-loader", TSLoader);
@@ -22,12 +23,12 @@ const initComponents = () => {
   registerComponent("ts-skeleton", TSSkeleton);
   registerComponent("ts-event", TSEventDescription);
   registerComponent("ts-search", SearchField);
+  console.groupEnd();
 };
 initComponents();
 
 document.addEventListener("DOMContentLoaded", async () => {
   initComponents();
-  console.group("Init application");
   window.timescape = new Timescape(
     document.querySelector("ts-map"),
     document.querySelector("ts-timeline"),
@@ -35,6 +36,5 @@ document.addEventListener("DOMContentLoaded", async () => {
     document.querySelector("ts-event-panel"),
     document.querySelector("ts-search"),
   );
-  console.groupEnd();
   window.timescape.run();
 });

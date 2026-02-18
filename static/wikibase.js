@@ -406,7 +406,7 @@ export async function loadThemeInfo(itemID) {
   }
 
   // coords
-  console.debug(entity);
+  // console.debug(entity);
   return {
     id: entity.id,
     range,

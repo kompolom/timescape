@@ -138,8 +138,10 @@ export class Timescape {
    * @param {string} itemId
    */
   async research(itemId) {
+    console.groupCollapsed("research");
     console.info("Start research of:", itemId);
     const data = await loadThemeInfo(itemId);
+    console.info("Got data for:", itemId);
     console.debug(data);
     if (data.center) {
       this.#map.center = data.center;
@@ -152,7 +154,7 @@ export class Timescape {
     if (data.range) {
       this.#timeline.window = data.range;
     } else {
-      console.debug("fallback to last 100 years");
+      console.debug("No date range. Fallback to last 100 years");
       const now = new Date();
       const defaultRange = new ISODateRange(
         new Date(now.getFullYear() - 100, now.getMonth(), now.getDate()),
@@ -160,5 +162,6 @@ export class Timescape {
       );
       this.#timeline.window = defaultRange;
     }
+    console.groupEnd();
   }
 }
