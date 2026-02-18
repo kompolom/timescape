@@ -2,6 +2,7 @@ export { Map, View } from "ol";
 export { useGeographic } from "ol/proj";
 import Zoom from "ol/control/Zoom.js";
 import OSM from "ol/source/OSM";
+import Control from "ol/control/Control";
 import TileLayer from "ol/layer/Tile";
 import Style from "ol/style/Style.js";
 import Feature from "ol/Feature.js";
@@ -25,4 +26,5 @@ export {
   VectorSource,
   Cluster,
   Overlay,
+  Control,
 };

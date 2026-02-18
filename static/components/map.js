@@ -23,10 +23,43 @@ import {
   Icon,
   boundingExtent,
   Overlay,
+  Control,
 } from "../../dist/ol.js";
 import { GeoPoint } from "../value-objects/geopoint.js";
 import { BBox } from "../value-objects/bbox.js";
 import olStyles from "https://cdn.jsdelivr.net/npm/ol@10.7.0/ol.css" with { type: "css" };
+
+class FocusControl extends Control {
+  #enabled = false;
+  constructor(opts = {}) {
+    const element = document.createElement("div");
+    const button = document.createElement("button");
+    element.className = "pin-control ol-unselectable ol-control";
+    element.appendChild(button);
+    button.addEventListener(
+      "click",
+      () => {
+        this.#enabled = !this.#enabled;
+        element.classList.toggle("active", this.#enabled);
+        this.#updateButton(button);
+        if (opts.onToggle) {
+          opts.onToggle(this.#enabled);
+        }
+      },
+      false,
+    );
+    super({ element, target: opts.target });
+    this.#updateButton(button);
+  }
+  #updateButton(el) {
+    const unpin = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-map-pin-icon lucide-map-pin"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/></svg>`;
+    const pin = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-map-pin-off-icon lucide-map-pin-off"><path d="M12.75 7.09a3 3 0 0 1 2.16 2.16"/><path d="M17.072 17.072c-1.634 2.17-3.527 3.912-4.471 4.727a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 1.432-4.568"/><path d="m2 2 20 20"/><path d="M8.475 2.818A8 8 0 0 1 20 10c0 1.183-.31 2.377-.81 3.533"/><path d="M9.13 9.13a3 3 0 0 0 3.74 3.74"/></svg>`;
+    el.innerHTML = this.#enabled ? unpin : pin;
+  }
+  get enabled() {
+    return this.#enabled;
+  }
+}
 
 const markerStyle = new Style({
   image: new Icon({
@@ -75,6 +108,7 @@ export class TSMap extends LitElement {
   #markersLayer;
   /** @type {Overlay} */
   #mapPopupOverlay;
+  #followMarker = false;
   static properties = {
     center: { type: String },
     zoom: { type: Number },
@@ -113,6 +147,9 @@ export class TSMap extends LitElement {
    * @param {import('../entities/historical-event').HistoricalEvent} event
    */
   selectEvent(event) {
+    if (this.#followMarker) {
+      this.#ol.getView().setCenter(fromLonLat(event.position.coordinates));
+    }
     this.#markersLayer
       .getSource()
       .getFeatures()
@@ -164,6 +201,13 @@ export class TSMap extends LitElement {
         new CustomEvent("change", { bubbles: true, composed: true }),
       );
     });
+    this.#ol.addControl(
+      new FocusControl({
+        onToggle: (v) => {
+          this.#followMarker = v;
+        },
+      }),
+    );
     this.#ol.on("click", (event) => {
       this.#ol.forEachFeatureAtPixel(event.pixel, (feature) => {
         const maxZoom = 15;
@@ -302,6 +346,10 @@ export class TSMap extends LitElement {
     .ol-zoom {
       right: 0.5em;
       left: auto;
+    }
+    .pin-control {
+      right: 0.5em;
+      top: 4em;
     }
     @media (prefers-color-scheme: dark) {
       .ol-layer {
