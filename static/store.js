@@ -69,6 +69,14 @@ export class Store {
     }
     console.info("Load timescape from wikidata");
     return loadData({ range: dateRange, bbox, limit: 500 }).pipe(
+      map((events) => {
+        const seen = new Set();
+        return events.filter((event) => {
+          if (seen.has(event.id)) return false;
+          seen.add(event.id);
+          return true;
+        });
+      }),
       map((events) => events.map(HistoricalEvent.create)),
       tap((he) => {
         const ts = new Timescape(dateRange, bbox);
