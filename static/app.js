@@ -2,6 +2,7 @@ import {
   fromEvent,
   tap,
   map,
+  from,
   debounceTime,
   switchMap,
   combineLatest,
@@ -49,6 +50,15 @@ export class Timescape {
     const marker$ = fromEvent(this.#map, "markerclick").pipe(
       map((e) => e.detail.id),
     );
+    const cluster$ = fromEvent(this.#map, "clusterclick")
+      .pipe(
+        map((e) => e.detail.ids),
+        map((ids) => ids.map((id) => this.#store.getEventById(id))),
+      )
+      .subscribe((events) => {
+        this.#map.selectedEvents = events;
+      });
+
     const eventSelect$ = fromEvent(this.#timeline, "select").pipe(
       map((e) => e.detail),
     );
@@ -68,6 +78,7 @@ export class Timescape {
       const event = this.#store.getEventById(id);
       if (event) {
         this.#map.selectEvent(event);
+        this.#map.selectedEvents = [];
       }
     });
   }

@@ -22,6 +22,7 @@ import {
   Cluster,
   Icon,
   boundingExtent,
+  Overlay,
 } from "../../dist/ol.js";
 import { GeoPoint } from "../value-objects/geopoint.js";
 import { BBox } from "../value-objects/bbox.js";
@@ -72,11 +73,14 @@ export class TSMap extends LitElement {
   #ol;
   /** @type {VectorLayer} */
   #markersLayer;
+  /** @type {Overlay} */
+  #mapPopupOverlay;
   static properties = {
     center: { type: String },
     zoom: { type: Number },
     markers: { type: Object },
     bbox: {},
+    selectedEvents: { type: Array },
   };
 
   /**
@@ -88,7 +92,20 @@ export class TSMap extends LitElement {
   }
 
   render() {
-    return html`<div id="root"><slot></slot></div>`;
+    return html`
+      <div id="root">
+        <slot></slot>
+        <div
+          ?active=${Array.isArray(this.selectedEvents) &&
+          this.selectedEvents.length}
+          id="popup"
+        >
+          <sl-menu @sl-select=${this.#onMenuItemClick}
+            >${this.#renderMenu()}</sl-menu
+          >
+        </div>
+      </div>
+    `;
   }
 
   /**
@@ -125,6 +142,7 @@ export class TSMap extends LitElement {
     this.#markersLayer = new VectorLayer({
       source: new VectorSource({ features: [] }),
     });
+
     this.#ol = new Map({
       target: this.renderRoot.getElementById("root"),
       layers: [
@@ -153,14 +171,21 @@ export class TSMap extends LitElement {
         if (clustered && clustered.length > 1) {
           // Cluster
           if (this.#ol.getView().getZoom() >= maxZoom) {
-            const ids = clustered.map((f) => f.getId());
+            this.#mapPopupOverlay = new Overlay({
+              element: this.renderRoot.getElementById("popup"),
+              positioning: "bottom-center",
+              stopEvent: true,
+              offset: [0, -10],
+            });
+            this.#ol.addOverlay(this.#mapPopupOverlay);
             this.dispatchEvent(
               new CustomEvent("clusterclick", {
-                detail: { ids },
+                detail: { ids: clustered.map((f) => f.getId()) },
                 bubbles: true,
                 composed: true,
               }),
             );
+            this.#mapPopupOverlay.setPosition(event.coordinate);
             return;
           } else {
             const extent = boundingExtent(
@@ -240,6 +265,26 @@ export class TSMap extends LitElement {
     return feature;
   }
 
+  #renderMenu() {
+    if (!Array.isArray(this.selectedEvents) || !this.selectedEvents.length)
+      return null;
+    return this.selectedEvents.map(
+      (ev) => html`<sl-menu-item value="${ev.id}">${ev.label}</sl-menu-item>`,
+    );
+  }
+
+  #onMenuItemClick(e) {
+    this.#mapPopupOverlay.setPosition(undefined);
+    this.#mapPopupOverlay.dispose();
+    this.dispatchEvent(
+      new CustomEvent("markerclick", {
+        detail: { id: e.detail.item.value },
+        composed: true,
+        bubbles: true,
+      }),
+    );
+  }
+
   static styles = css`
     :host {
       display: block;
@@ -250,6 +295,9 @@ export class TSMap extends LitElement {
     #root {
       width: 100%;
       height: 100%;
+    }
+    #popup {
+      position: absolute;
     }
     .ol-zoom {
       right: 0.5em;

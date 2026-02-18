@@ -24,16 +24,6 @@ export class Store {
     this.#loadedScapes = new Map();
   }
 
-  // /**
-  //  *
-  //  * @param {HistoricalEvent[]} events
-  //  */
-  // addEvents(events) {
-  //   for (const event of events) {
-  //     this.#eventsById.set(event.id, event);
-  //   }
-  // }
-
   /**
    * Find single event by wikidata id
    * @param {string} eventId

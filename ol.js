@@ -8,9 +8,10 @@ import Feature from "ol/Feature.js";
 import Point from "ol/geom/Point.js";
 import VectorLayer from "ol/layer/Vector";
 import VectorSource from "ol/source/Vector";
+import Overlay from "ol/Overlay";
 import Cluster from "ol/source/Cluster";
 export { Circle, Fill, Icon, Stroke, Text } from "ol/style";
-export { boundingExtent } from "ol/extent";
+export { boundingExtent, getArea } from "ol/extent";
 export { fromLonLat, transformExtent } from "ol/proj";
 
 export {
@@ -23,4 +24,5 @@ export {
   VectorLayer,
   VectorSource,
   Cluster,
+  Overlay,
 };
