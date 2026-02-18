@@ -82,12 +82,16 @@ const WIKIDATA_PROPERTIES = {
   EastPoint: "P1334",
   WestPoint: "P1335",
   Country: "P17",
+  CountryOfCitizenship: "P27",
   /** @url https://www.wikidata.org/wiki/Property:P30 */
   Continent: "P30",
   Capital: "P36",
   InceptionDate: "P571",
   DemolitionDate: "P576",
   CenterCoordinates: "P5140",
+  DateOfBirth: "P569",
+  DateOfDeath: "P570",
+  GeoShape: "P3896",
 };
 
 /**
@@ -383,10 +387,21 @@ export async function loadThemeInfo(itemID) {
     getEntityClaimValue(entity, WIKIDATA_PROPERTIES.StartTime),
     getEntityClaimValue(entity, WIKIDATA_PROPERTIES.EndTime),
   );
-  if (!range) {
+  if (
+    !range &&
+    getEntityClaimValue(entity, WIKIDATA_PROPERTIES.InceptionDate)
+  ) {
     range = dateRangeFromClaims(
       getEntityClaimValue(entity, WIKIDATA_PROPERTIES.InceptionDate),
-      getEntityClaimValue(entity, WIKIDATA_PROPERTIES.DemolitionDate),
+      getEntityClaimValue(entity, WIKIDATA_PROPERTIES.DemolitionDate) ||
+        new Date(),
+    );
+  }
+  // date of live
+  if (!range) {
+    range = dateRangeFromClaims(
+      getEntityClaimValue(entity, WIKIDATA_PROPERTIES.DateOfBirth),
+      getEntityClaimValue(entity, WIKIDATA_PROPERTIES.DateOfDeath),
     );
   }
 
@@ -405,15 +420,20 @@ export async function loadThemeInfo(itemID) {
  * @returns {Promise<{ bbox?: BBox; center?: GeoPoint; zoom?: number}>}
  */
 async function getEntityGeography(entity) {
-  const coordsRaw = getEntityClaimValue(entity, WIKIDATA_PROPERTIES.Coords);
-  const center = coordsRaw
-    ? GeoPoint.create({ latitude: coordsRaw[0], longitude: coordsRaw[1] })
-    : null;
+  const geopointFromClaims = (entity) => {
+    const coords = getEntityClaimValue(entity, WIKIDATA_PROPERTIES.Coords);
+    return coords
+      ? GeoPoint.create({ latitude: coords[0], longitude: coords[1] })
+      : null;
+  };
+
+  let center = geopointFromClaims(entity);
   let zoom = undefined;
   let bbox = bboxFromClaims(entity);
   const levels = [
     getEntityClaimValue(entity, WIKIDATA_PROPERTIES.Location),
     getEntityClaimValue(entity, WIKIDATA_PROPERTIES.Country),
+    getEntityClaimValue(entity, WIKIDATA_PROPERTIES.CountryOfCitizenship),
     getEntityClaimValue(entity, WIKIDATA_PROPERTIES.Continent),
   ];
 
@@ -427,10 +447,16 @@ async function getEntityGeography(entity) {
     }
     let nextEnt = await fetchEntityClaims(levels[i]);
     bbox = bboxFromClaims(nextEnt);
+    if (!center) {
+      center = geopointFromClaims(nextEnt);
+    }
     levels[1] =
       levels[1] || getEntityClaimValue(nextEnt, WIKIDATA_PROPERTIES.Country);
     levels[2] =
-      levels[2] || getEntityClaimValue(nextEnt, WIKIDATA_PROPERTIES.Continent);
+      levels[2] ||
+      getEntityClaimValue(nextEnt, WIKIDATA_PROPERTIES.CountryOfCitizenship);
+    levels[3] =
+      levels[3] || getEntityClaimValue(nextEnt, WIKIDATA_PROPERTIES.Continent);
   }
 
   if (!bbox) {
